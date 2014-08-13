@@ -84,7 +84,10 @@ Astronaut_AddToDownloads()
     }
 }
 
-stock String:Astronaut_RandomSound()
+stock Astronaut_RandomSound(String:str[], max_size)
 {
-    return AstroRandom[GetRandomInt(0, sizeof(AstroRandom)-1)];
+    new random = GetRandomInt(0, sizeof(AstroRandom)-1);
+    strcopy(str, max_size, AstroRandom[random]);
+    
+    return random;
 }

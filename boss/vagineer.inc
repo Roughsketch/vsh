@@ -25,28 +25,28 @@
 */
 
 static const String:VagineerJump[][] = {
-    "saxton_hale/vagineer_responce_jump_1",
-    "saxton_hale/vagineer_responce_jump_2"
+    "saxton_hale/vagineer_responce_jump_1.wav",
+    "saxton_hale/vagineer_responce_jump_2.wav"
 };
 
 static const String:VagineerRageSound2[][] = {
-    "saxton_hale/vagineer_responce_rage_1",
-    "saxton_hale/vagineer_responce_rage_2",
-    "saxton_hale/vagineer_responce_rage_3",
-    "saxton_hale/vagineer_responce_rage_4"
+    "saxton_hale/vagineer_responce_rage_1.wav",
+    "saxton_hale/vagineer_responce_rage_2.wav",
+    "saxton_hale/vagineer_responce_rage_3.wav",
+    "saxton_hale/vagineer_responce_rage_4.wav"
 };
 
 static const String:VagineerTaunt[][] = {
-    "saxton_hale/vagineer_responce_taunt_1",
-    "saxton_hale/vagineer_responce_taunt_2",
-    "saxton_hale/vagineer_responce_taunt_3",
-    "saxton_hale/vagineer_responce_taunt_4",
-    "saxton_hale/vagineer_responce_taunt_5"
+    "saxton_hale/vagineer_responce_taunt_1.wav",
+    "saxton_hale/vagineer_responce_taunt_2.wav",
+    "saxton_hale/vagineer_responce_taunt_3.wav",
+    "saxton_hale/vagineer_responce_taunt_4.wav",
+    "saxton_hale/vagineer_responce_taunt_5.wav"
 };
 
 static const String:VagineerFail[][] = {
-    "saxton_hale/vagineer_responce_fail_1",
-    "saxton_hale/vagineer_responce_fail_2"
+    "saxton_hale/vagineer_responce_fail_1.wav",
+    "saxton_hale/vagineer_responce_fail_2.wav"
 };
 
 Vagineer_AddToDownloads()
@@ -113,22 +113,34 @@ Vagineer_AddToDownloads()
     AddFileToDownloadsTable(s);
 }
 
-stock String:Vagineer_RandomTaunt()
+stock Vagineer_RandomTaunt(String:str[], max_size)
 {
-    return VagineerTaunt[GetRandomInt(0, sizeof(VagineerTaunt)-1)];
+    new random = GetRandomInt(0, sizeof(VagineerTaunt)-1);
+    strcopy(str, max_size, VagineerTaunt[random]);
+    
+    return random;
 }
 
-stock String:Vagineer_RandomJump()
+stock Vagineer_RandomJump(String:str[], max_size)
 {
-    return VagineerJump[GetRandomInt(0, sizeof(VagineerJump)-1)];
+    new random = GetRandomInt(0, sizeof(VagineerJump)-1);
+    strcopy(str, max_size, VagineerJump[random]);
+    
+    return random;
 }
 
-stock String:Vagineer_RandomRage()
+stock Vagineer_RandomRage(String:str[], max_size)
 {
-    return VagineerRageSound2[GetRandomInt(0, sizeof(VagineerRageSound2)-1)];
+    new random = GetRandomInt(0, sizeof(VagineerRageSound2)-1);
+    strcopy(str, max_size, VagineerRageSound2[random]);
+    
+    return random;
 }
 
-stock String:Vagineer_RandomFail()
+stock Vagineer_RandomFail(String:str[], max_size)
 {
-    return VagineerFail[GetRandomInt(0, sizeof(VagineerFail)-1)];
+    new random = GetRandomInt(0, sizeof(VagineerFail)-1);
+    strcopy(str, max_size, VagineerFail[random]);
+    
+    return random;
 }

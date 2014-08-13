@@ -134,17 +134,26 @@ Nue_AddToDownloads()
     AddFileToDownloadsTable(s);
 }
 
-stock String:Nue_RandomJump()
+stock Nue_RandomJump(String:str[], max_size)
 {
-    return NueJump[GetRandomInt(0, sizeof(NueJump)-1)];
+    new random = GetRandomInt(0, sizeof(NueJump)-1);
+    strcopy(str, max_size, NueJump[random]);
+    
+    return random;
 }
 
-stock String:Nue_RandomRage()
+stock Nue_RandomRage(String:str[], max_size)
 {
-    return NueRage[GetRandomInt(0, sizeof(NueRage)-1)];
+    new random = GetRandomInt(0, sizeof(NueRage)-1);
+    strcopy(str, max_size, NueRage[random]);
+    
+    return random;
 }
 
-stock String:Nue_RandomKill()
+stock Nue_RandomKill(String:str[], max_size)
 {
-    return NueKill[GetRandomInt(0, sizeof(NueKill)-1)];
+    new random = GetRandomInt(0, sizeof(NueKill)-1);
+    strcopy(str, max_size, NueKill[random]);
+    
+    return random;
 }

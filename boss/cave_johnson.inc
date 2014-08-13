@@ -102,12 +102,18 @@ CaveJohnson_AddToDownloads()
     AddFileToDownloadsTable("materials/models/weapons/c_items/c_lemon.vtf");
 }
 
-stock String:CaveJohnson_RandomStart()
+stock CaveJohnson_RandomStart(String:str[], max_size)
 {
-    return CaveStart[GetRandomInt(0, sizeof(CaveStart)-1)];
+    new random = GetRandomInt(0, sizeof(CaveStart)-1);
+    strcopy(str, max_size, CaveStart[random]);
+    
+    return random;
 }
 
-stock String:CaveJohnson_RandomSpree()
+stock CaveJohnson_RandomSpree(String:str[], max_size)
 {
-    return CaveSpree[GetRandomInt(0, sizeof(CaveSpree)-1)];
+    new random = GetRandomInt(0, sizeof(CaveSpree)-1);
+    strcopy(str, max_size, CaveSpree[random]);
+    
+    return random;
 }

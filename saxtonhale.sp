@@ -2020,13 +2020,13 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
             }
             case VSHSpecial_Vagineer:
             {
-                Format(s, PLATFORM_MAX_PATH, Vagineer_RandomTaunt());
+                Vagineer_RandomTaunt(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomWin());
+                EasterBunny_RandomWin(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
             }
@@ -2252,11 +2252,11 @@ public Action:StartResponceTimer(Handle:hTimer)
         }
         case VSHSpecial_Cave:
         {
-            strcopy(s, PLATFORM_MAX_PATH, CaveJohnson_RandomStart());
+            CaveJohnson_RandomStart(s, PLATFORM_MAX_PATH);
         }
         case VSHSpecial_Bunny:
         {
-            strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomStart());
+            EasterBunny_RandomStart(s, PLATFORM_MAX_PATH);
         }
         case VSHSpecial_Vagineer:
         {
@@ -6102,13 +6102,13 @@ public Action:HaleTimer(Handle:hTimer)
                     case VSHSpecial_Astro:
                         strcopy(s, PLATFORM_MAX_PATH, AstroJump);
                     case VSHSpecial_Nue:
-                        Format(s, PLATFORM_MAX_PATH, "%s", Nue_RandomJump());
+                        Nue_RandomJump(s, PLATFORM_MAX_PATH);
                     case VSHSpecial_Vagineer:
-                        Format(s, PLATFORM_MAX_PATH, "%s", Vagineer_RandomJump());
+                        Vagineer_RandomJump(s, PLATFORM_MAX_PATH);
                     case VSHSpecial_CBS:
                         strcopy(s, PLATFORM_MAX_PATH, CBSJump1);
                     case VSHSpecial_Bunny:
-                        Format(s, PLATFORM_MAX_PATH, "%s", EasterBunny_RandomJump());
+                        EasterBunny_RandomJump(s, PLATFORM_MAX_PATH);
                     case VSHSpecial_Hale:
                     {
                         Format(s, PLATFORM_MAX_PATH, "%s%i.wav", GetRandomInt(0, 1) ? HaleJump:HaleJump132, GetRandomInt(1, 2));
@@ -6712,7 +6712,7 @@ public Action:DoTaunt(client, const String:command[], argc)
         {
             case VSHSpecial_Nue:
             {
-                strcopy(s, PLATFORM_MAX_PATH, Nue_RandomRage());
+                Nue_RandomRage(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, _, pos, NULL_VECTOR, false, 0.0);
 
                 strcopy(s, PLATFORM_MAX_PATH, NueGone);
@@ -6765,9 +6765,14 @@ public Action:DoTaunt(client, const String:command[], argc)
             case VSHSpecial_Vagineer:
             {
                 if (GetRandomInt(0, 2))
+                {
                     strcopy(s, PLATFORM_MAX_PATH, VagineerRageSound);
+                }
                 else
-                    Format(s, PLATFORM_MAX_PATH, Vagineer_RandomRage());
+                {
+                    Vagineer_RandomRage(s, PLATFORM_MAX_PATH);
+                }
+
                 TF2_AddCondition(Hale, TFCond_Ubercharged, 99.0);
                 UberRageCount = 0.0;
 
@@ -6786,7 +6791,7 @@ public Action:DoTaunt(client, const String:command[], argc)
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomRage());
+                EasterBunny_RandomRage(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, _, pos, NULL_VECTOR, false, 0.0);
                 TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
                 new weapon = SpawnWeapon(client, "tf_weapon_grenadelauncher", 19, 64, 5, "1 ; 0.6 ; 6 ; 0.1 ; 411 ; 150.0 ; 413 ; 1.0 ; 37 ; 0.0 ; 280 ; 17 ; 477 ; 1.0 ; 467 ; 1.0 ; 181 ; 2.0 ; 252 ; 0.6");
@@ -7213,14 +7218,14 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             }
             case VSHSpecial_Vagineer:
             {
-                Format(s, PLATFORM_MAX_PATH, Vagineer_RandomFail());
+                Vagineer_RandomFail(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 //CreateTimer(0.1, Timer_ChangeRagdoll, any:GetEventInt(event, "userid"));
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomFail());
+                EasterBunny_RandomFail(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 //CreateTimer(0.1, Timer_ChangeRagdoll, any:GetEventInt(event, "userid"));
@@ -7336,7 +7341,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomKill());
+                EasterBunny_RandomKill(s, PLATFORM_MAX_PATH);
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
             }
@@ -7344,7 +7349,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             {
                 if (!bNueRageActive)
                 {
-                    strcopy(s, PLATFORM_MAX_PATH, Nue_RandomKill());
+                    Nue_RandomKill(s, PLATFORM_MAX_PATH);
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 }
@@ -7358,13 +7363,11 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
 
                 if (!bCaveKillVoice && RedAlivePlayers > 2)
                 {
-                    //  TODO: Ask why iVoice exists
-                    //  new iVoice = GetRandomInt(0, sizeof(CaveSpree)-1);
-                    strcopy(s, PLATFORM_MAX_PATH, CaveJohnson_RandomSpree());
+                    new iVoice = CaveJohnson_RandomSpree(s, PLATFORM_MAX_PATH);
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     bCaveKillVoice = true;
-                    //  CaveKillTimer = CreateTimer(iVoice == 1 ? 12.0 : 6.0, EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE);
+                    CaveKillTimer = CreateTimer(iVoice == 1 ? 12.0 : 6.0, EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE);
                     //iVoice == 0 ? 5.0 : iVoice == 1 ? 11.0 : ? iVoice == 2 : 2.0 : 3.0
                 }
             }
@@ -7454,7 +7457,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
                     }
                     else
                     {
-                        Format(s, PLATFORM_MAX_PATH, Vagineer_RandomTaunt());
+                        Vagineer_RandomTaunt(s, PLATFORM_MAX_PATH);
                     }
                 }
                 case VSHSpecial_HHH:
@@ -7478,7 +7481,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
                 }
                 case VSHSpecial_Bunny:
                 {
-                    strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomSpree());
+                    EasterBunny_RandomSpree(s, PLATFORM_MAX_PATH);
                 }
             }
 
@@ -7697,7 +7700,7 @@ public Action:CheckAlivePlayers(Handle:hTimer)
             }
             else if (Special == VSHSpecial_Bunny)
             {
-                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomLast());
+                EasterBunny_RandomLast(s, PLATFORM_MAX_PATH);
             }
             else if (Special == VSHSpecial_Astro)
             {
@@ -8883,7 +8886,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                     }
                     case VSHSpecial_Bunny:
                     {
-                        strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomPain());
+                        EasterBunny_RandomPain(s, PLATFORM_MAX_PATH);
                         EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                         EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     }
@@ -10450,7 +10453,7 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
         {
             if (StrContains(sample, "engineer_moveup", false) != -1)
             {
-                Format(sample, PLATFORM_MAX_PATH, Vagineer_RandomJump());
+                Vagineer_RandomJump(sample, PLATFORM_MAX_PATH);
             }
             else if (StrContains(sample, "engineer_no", false) != -1 || GetRandomInt(0, 9) > 6)
             {
@@ -10466,7 +10469,7 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
 
         if (Special == VSHSpecial_Astro)
         {
-            strcopy(sample, PLATFORM_MAX_PATH, Astronaut_RandomSound());
+            Astronaut_RandomSound(sample, PLATFORM_MAX_PATH);
             return Plugin_Changed;
         }
 
@@ -10475,7 +10478,7 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
             if (StrContains(sample, "gibberish", false) == -1 && StrContains(sample, "burp", false) == -1 && !GetRandomInt(0, 2))
             {
                 //Do sound things
-                strcopy(sample, PLATFORM_MAX_PATH, EasterBunny_RandomVoice());
+                EasterBunny_RandomVoice(sample, PLATFORM_MAX_PATH);
 
                 return Plugin_Changed;
             }

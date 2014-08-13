@@ -151,54 +151,82 @@ EasterBunny_AddToDownloads()
     }
 }
 
-stock String:EasterBunny_RandomWin()
+stock EasterBunny_RandomWin(String:str[], max_size)
 {
-    return BunnyWin[GetRandomInt(0, sizeof(BunnyWin)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyWin)-1);
+    strcopy(str, max_size, BunnyWin[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomStart()
+stock EasterBunny_RandomStart(String:str[], max_size)
 {
-    return BunnyStart[GetRandomInt(0, sizeof(BunnyStart)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyStart)-1);
+    strcopy(str, max_size, BunnyStart[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomJump()
+stock EasterBunny_RandomJump(String:str[], max_size)
 {
-    new rand = GetRandomInt(0, sizeof(BunnyJump)-1);
-    LogMessage("RandomJump: %i = %s", rand, BunnyJump[rand]);
-    return BunnyJump[rand];
+    new random = GetRandomInt(0, sizeof(BunnyJump)-1);
+    strcopy(str, max_size, BunnyJump[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomRage()
+stock EasterBunny_RandomRage(String:str[], max_size)
 {
-    return BunnyRage[GetRandomInt(0, sizeof(BunnyRage)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyRage)-1);
+    strcopy(str, max_size, BunnyRage[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomFail()
+stock EasterBunny_RandomFail(String:str[], max_size)
 {
-    return BunnyFail[GetRandomInt(0, sizeof(BunnyFail)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyFail)-1);
+    strcopy(str, max_size, BunnyFail[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomKill()
+stock EasterBunny_RandomKill(String:str[], max_size)
 {
-    return BunnyKill[GetRandomInt(0, sizeof(BunnyKill)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyKill)-1);
+    strcopy(str, max_size, BunnyKill[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomSpree()
+stock EasterBunny_RandomSpree(String:str[], max_size)
 {
-    return BunnySpree[GetRandomInt(0, sizeof(BunnySpree)-1)];
+    new random = GetRandomInt(0, sizeof(BunnySpree)-1);
+    strcopy(str, max_size, BunnySpree[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomLast()
+stock EasterBunny_RandomLast(String:str[], max_size)
 {
-    return BunnyLast[GetRandomInt(0, sizeof(BunnyLast)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyLast)-1);
+    strcopy(str, max_size, BunnyLast[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomPain()
+stock EasterBunny_RandomPain(String:str[], max_size)
 {
-    return BunnyPain[GetRandomInt(0, sizeof(BunnyPain)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyPain)-1);
+    strcopy(str, max_size, BunnyPain[random]);
+    
+    return random;
 }
 
-stock String:EasterBunny_RandomVoice()
+stock EasterBunny_RandomVoice(String:str[], max_size)
 {
-    return BunnyRandomVoice[GetRandomInt(0, sizeof(BunnyRandomVoice)-1)];
+    new random = GetRandomInt(0, sizeof(BunnyRandomVoice)-1);
+    strcopy(str, max_size, BunnyRandomVoice[random]);
+    
+    return random;
 }
