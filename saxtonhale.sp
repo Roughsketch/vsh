@@ -163,6 +163,8 @@ As Medic, do not deploy ubercharge while Painis is using Hunger, it is as deadly
 #include <steamtools>
 //#define REQUIRE_EXTENSIONS
 
+#include "boss/boss"
+
 #define DOWHILE_ENTFOUND(%1,%2) %1 = -1; while ((%1 = FindEntityByClassname2(%1, %2)) != -1)
 
 #define IsValidClient(%1) (0 < %1 && %1 <= MaxClients && IsClientInGame(%1))
@@ -191,319 +193,26 @@ static const String:sTrigger_Teleport[][] = {
 
 // Max Entities
 #define ME 2048
-
 #define EF_BONEMERGE            (1 << 0)
-
 #define EF_BONEMERGE_FASTCULL   (1 << 7)
 
 #define PLUGIN_VERSION "34.3"
 
-#define HALEHHH_TELEPORTCHARGETIME 2
-#define HALE_JUMPCHARGETIME 1
-
-#define HALEHHH_TELEPORTCHARGE (25 * HALEHHH_TELEPORTCHARGETIME)
-#define HALE_JUMPCHARGE (25 * HALE_JUMPCHARGETIME)
-
-new bool:g_bCanFog;
 
 // Target name of master fog.
 new String:g_sMasterFog[64];
-
-#define GuardianWin              "slender/scare1.wav"
-#define GuardianWarn             "slender/amnesia/scare.mp3"
-
-#define GuardianClose            "slender/amnesia/suitorchase.wav"
-
-static const String:GuardianChase[][] = {
-    "slender/amnesia/gruntalerttheme.wav",
-    "slender/amnesia/grunttheme.wav",
-    "slender/amnesia/suitorsearch.wav"
-};
-
-//#define ASTRONAUT_ON
-#define AstroModel               "models/player/saxton_hale/astronautv3.mdl"
-#define AstroModelPrefix         "models/player/saxton_hale/astronautv3"
-
-static const String:AstroMaterials[][] = {
-    "materials/models/player/saxton_hale/astronaut/astro_g.vmt",
-    "materials/models/player/saxton_hale/astronaut/astro_g.vtf",
-    "materials/models/player/saxton_hale/astronaut/astro_n.vtf",
-    "materials/models/player/saxton_hale/astronaut/astro_p.vmt",
-    "materials/models/player/saxton_hale/astronaut/astro_p.vtf",
-    "materials/models/player/saxton_hale/astronaut/astro_visor.vmt"
-};
-
-#define AstroWin                "saxton_hale/astro/win.wav"
-#define AstroJump               "saxton_hale/astro/jump.wav"
-#define AstroLast               "saxton_hale/astro/last.wav"
-#define AstroStab               "saxton_hale/astro/stabbed.wav"
-#define AstroFail               "saxton_hale/astro/fail.wav"
-#define AstroStart              "saxton_hale/astro/start.wav"
-#define AstroMusic              "saxton_hale/astro/theme.mp3"
-#define AstroRage               "saxton_hale/astro/rage.wav"
-
-static const String:AstroRandom[][] = {
-    "saxton_hale/astro/vo1.wav",
-    "saxton_hale/astro/vo2.wav",
-    "saxton_hale/astro/vo3.wav",
-    "saxton_hale/astro/vo4.wav",
-    "saxton_hale/astro/jump.wav"
-};
-
-//#define NUE_HOUJUU_ON
-#define NueModel               "models/nuenue/spy.mdl"
-#define NueModelPrefix         "models/nuenue/spy"
-
-#define NueWin                 "tf2data/nue/fh47vo4.wav"
-#define NueStab                "tf2data/nue/fh47vo6.wav"
-#define NueFail                "tf2data/nue/fh47vo8.wav"
-#define NueStart               "tf2data/nue/fh47vo9.wav"
-
-#define NueGone                "AdvancedWeaponiser/poof.wav"
-#define NueAppear              "tf2data/nue/se_boon01.wav"
-#define Death2hu               "freak_fortress_2/touhou/touhou_pichuun.wav"
-#define NueMusic               "tf2data/nue/wicked_child.mp3"
-
-static const String:NueJump[][] = {
-    "tf2data/nue/fh47vo1_1.wav",
-    "tf2data/nue/fh47vo1_2.wav",
-    "tf2data/nue/fh47vo12.wav"
-};
-
-static const String:NueKill[][] = {
-    "tf2data/nue/fh47vo1_3.wav",
-    "tf2data/nue/fh47vo2_1.wav",
-    "tf2data/nue/fh47vo2_2.wav",
-    "tf2data/nue/fh47vo3.wav"
-};
-
-static const String:NueRage[][] = {
-    "tf2data/nue/fh47vo7.wav",
-    "tf2data/nue/fh47vo10.wav",
-    "tf2data/nue/fh47vo11.wav"
-};
-
-static const String:NueMaterials[][] = {
-    "materials/models/player/spy/1py_blue.vmt",
-    "materials/models/player/spy/1py_blue.vtf",
-    "materials/models/player/spy/1py_blue_invun.vmt",
-    "materials/models/player/spy/1py_blue_invun.vtf",
-    "materials/models/player/spy/1py_head.vtf",
-    "materials/models/player/spy/1py_head_blue.vmt",
-    "materials/models/player/spy/1py_head_blue_invun.vmt",
-    "materials/models/player/spy/1py_head_blue_invun.vtf",
-    "materials/models/player/spy/1py_head_blue_invun_walpha.vmt",
-    "materials/models/player/spy/1py_head_blue_invun_wtrans.vmt",
-    "materials/models/player/spy/1py_head_red.vmt",
-    "materials/models/player/spy/1py_head_red_invun.vmt",
-    "materials/models/player/spy/1py_head_red_invun.vtf",
-    "materials/models/player/spy/1py_head_red_invun_walpha.vmt",
-    "materials/models/player/spy/1py_head_red_invun_wtrans.vmt",
-    "materials/models/player/spy/1py_head_red_walpha.vmt",
-    "materials/models/player/spy/1py_head_red_wtrans.vmt",
-    "materials/models/player/spy/1py_normal.vtf",
-    "materials/models/player/spy/1py_red.vmt",
-    "materials/models/player/spy/1py_red.vtf",
-    "materials/models/player/spy/1py_red_invun.vmt",
-    "materials/models/player/spy/1py_red_invun.vtf",
-    "materials/models/player/spy/1yeball_l.vmt",
-    "materials/models/player/spy/1yeball_r.vmt",
-    "materials/models/player/spy/1ye-iris.vtf",
-    "materials/models/player/spy/spy_red_gib.vtf"
-};
+new bool:g_bCanFog;
 
 new Float:iClassSpeeds[10] = {340.0, 400.0, 300.0, 240.0, 280.0, 320.0, 230.0, 300.0, 300.0, 300.0};
 //new iClassBaseHP[10] = {300, 125, 125, 200, 175, 150, 300, 175, 125, 125};
 
-//#define CAVE_JOHNSON_ON
-#define CaveModel               "models/freak_fortress_2/cavejohnson/cavejohnson.mdl"
-#define CaveModelPrefix         "models/freak_fortress_2/cavejohnson/cavejohnson"
-#define LemonModel              "models/weapons/w_models/custom/lemon.mdl"
-#define LemonModelPrefix        "models/weapons/w_models/custom/lemon"
-
-#define PortalMusic             "portal2/thepartwherehekillsyou1.mp3"
-#define PortalMusicDuo          "portal2/yourpreciousmoon1.mp3"
-#define PortalMusicFinal        "portal2/yourpreciousmoon4.mp3"
-
-#define CaveFail                "portal2/cavejohnson/eighties_outro08v2.wav"
-#define CaveRage                "portal2/cavejohnson/eighties_outro09_part.wav"
-#define CaveStab                "tf2data/cave/cave_cough.wav"
-static const String:CaveStart[][] = {
-    "portal2/cavejohnson/eighties_outro11_part2.wav",
-    "portal2/cavejohnson/fifties_intro04v2.wav",
-    "freak_fortress_2/cavejohnson/cavejohnson_start2.mp3"
-};
-#define CaveWin                 "portal2/cavejohnson/we_are_done_here1.wav"
-/*static const String:CaveWin[][] = {
-    "portal2/cavejohnson/we_are_done_here1.wav",
-    "freak_fortress_2/cavejohnson/cavejohnson_win1.mp3",
-    "freak_fortress_2/cavejohnson/cavejohnson_win2.mp3"
-};*/
-static const String:CaveSpree[][] = {
-    "portal2/cavejohnson/fifties_fifth_test_complete08v2.wav",
-    "portal2/cavejohnson/misc_tests06v2.wav",
-    "freak_fortress_2/cavejohnson/cavejohnson_spree3v2.mp3",
-    "freak_fortress_2/cavejohnson/cavejohnson_rage1.mp3"
-};
-
-#define EASTER_BUNNY_ON
-#define BunnyModel              "models/player/saxton_hale/easter_demo.mdl"
-#define BunnyModelPrefix        "models/player/saxton_hale/easter_demo"
-#define EggModel                "models/player/saxton_hale/w_easteregg.mdl"
-#define EggModelPrefix          "models/player/saxton_hale/w_easteregg"
-#define ReloadEggModel          "models/player/saxton_hale/c_easter_cannonball.mdl"
-#define ReloadEggModelPrefix    "models/player/saxton_hale/c_easter_cannonball"
-
-static const String:BunnyWin[][] = {
-    "vo/demoman_gibberish01.wav",
-    "vo/demoman_gibberish12.wav",
-    "vo/demoman_cheers02.wav",
-    "vo/demoman_cheers03.wav",
-    "vo/demoman_cheers06.wav",
-    "vo/demoman_cheers07.wav",
-    "vo/demoman_cheers08.wav",
-    "vo/taunts/demoman_taunts12.wav"
-};
-static const String:BunnyJump[][] = {
-    "vo/demoman_gibberish07.wav",
-    "vo/demoman_gibberish08.wav",
-    "vo/demoman_laughshort01.wav",
-    "vo/demoman_positivevocalization04.wav"
-};
-static const String:BunnyRage[][] = {
-    "vo/demoman_positivevocalization03.wav",
-    "vo/demoman_dominationscout05.wav",
-    "vo/demoman_cheers02.wav"
-};
-static const String:BunnyFail[][] = {
-    "vo/demoman_gibberish04.wav",
-    "vo/demoman_gibberish10.wav",
-    "vo/demoman_jeers03.wav",
-    "vo/demoman_jeers06.wav",
-    "vo/demoman_jeers07.wav",
-    "vo/demoman_jeers08.wav"
-};
-static const String:BunnyKill[][] = {
-    "vo/demoman_gibberish09.wav",
-    "vo/demoman_cheers02.wav",
-    "vo/demoman_cheers07.wav",
-    "vo/demoman_positivevocalization03.wav"
-};
-static const String:BunnySpree[][] = {
-    "vo/demoman_gibberish05.wav",
-    "vo/demoman_gibberish06.wav",
-    "vo/demoman_gibberish09.wav",
-    "vo/demoman_gibberish11.wav",
-    "vo/demoman_gibberish13.wav",
-    "vo/demoman_autodejectedtie01.wav"
-};
-static const String:BunnyLast[][] = {
-    "vo/taunts/demoman_taunts05.wav",
-    "vo/taunts/demoman_taunts04.wav",
-    "vo/demoman_specialcompleted07.wav"
-};
-static const String:BunnyPain[][] = {
-    "vo/demoman_sf12_badmagic01.wav",
-    "vo/demoman_sf12_badmagic07.wav",
-    "vo/demoman_sf12_badmagic10.wav"
-};
-static const String:BunnyStart[][] = {
-    "vo/demoman_gibberish03.wav",
-    "vo/demoman_gibberish11.wav"
-};
-static const String:BunnyRandomVoice[][] = {
-    "vo/demoman_positivevocalization03.wav",
-    "vo/demoman_jeers08.wav",
-    "vo/demoman_gibberish03.wav",
-    "vo/demoman_cheers07.wav",
-    "vo/demoman_sf12_badmagic01.wav",
-    "vo/burp02.wav",
-    "vo/burp03.wav",
-    "vo/burp04.wav",
-    "vo/burp05.wav",
-    "vo/burp06.wav",
-    "vo/burp07.wav"
-};
-
-#define HaleModel               "models/player/saxton_hale/saxton_hale.mdl"
-#define HaleModelPrefix         "models/player/saxton_hale/saxton_hale"
-#define CBSModel                "models/player/saxton_hale/cbs_v4.mdl"
-#define CBSModelPrefix          "models/player/saxton_hale/cbs_v4"
-#define HaleYellName            "saxton_hale/saxton_hale_responce_1a.wav"
-#define HaleRageSoundB          "saxton_hale/saxton_hale_responce_1b.wav"
-#define HaleComicArmsFallSound  "saxton_hale/saxton_hale_responce_2.wav"
-#define HaleLastB               "vo/announcer_am_lastmanalive"
-#define HaleEnabled             QueuePanelH(Handle:0, MenuAction:0, 9001, 0)
-#define HaleKSpree              "saxton_hale/saxton_hale_responce_3.wav"
-#define HaleKSpree2             "saxton_hale/saxton_hale_responce_4.wav"    //this line is broken and unused
-#define VagineerModel           "models/player/saxton_hale/vagineer_v134.mdl"
-#define VagineerModelPrefix     "models/player/saxton_hale/vagineer_v134"
-#define VagineerLastA           "saxton_hale/lolwut_0.wav"
-#define VagineerRageSound       "saxton_hale/lolwut_2.wav"
-#define VagineerStart           "saxton_hale/lolwut_1.wav"
-#define VagineerKSpree          "saxton_hale/lolwut_3.wav"
-#define VagineerKSpree2         "saxton_hale/lolwut_4.wav"
-#define VagineerHit             "saxton_hale/lolwut_5.wav"
-#define WrenchModel             "models/weapons/w_models/w_wrench.mdl"
-#define ShivModel               "models/weapons/c_models/c_wood_machete/c_wood_machete.mdl"
-#define HHHModel                "models/player/saxton_hale/hhh_jr_mk3.mdl"
-#define HHHModelPrefix          "models/player/saxton_hale/hhh_jr_mk3"
-#define AxeModel                "models/weapons/c_models/c_headtaker/c_headtaker.mdl"
-#define HHHLaught               "vo/halloween_boss/knight_laugh"
-#define HHHRage                 "vo/halloween_boss/knight_attack01.wav"
-#define HHHRage2                "vo/halloween_boss/knight_alert.wav"
-#define HHHAttack               "vo/halloween_boss/knight_attack"
-#define CBS0                    "vo/sniper_specialweapon08.wav"
-#define CBS1                    "vo/taunts/sniper_taunts02.wav"
-#define CBS2                    "vo/sniper_award"
-#define CBS3                    "vo/sniper_battlecry03.wav"
-#define CBS4                    "vo/sniper_domination"
-#define HHHTheme                "ui/holiday/gamestartup_halloween.mp3"
-#define CBSTheme                "saxton_hale/the_millionaires_holiday.mp3"
-#define CBSJump1                "vo/sniper_specialcompleted02.wav"
-
-//===New responces===
-#define HaleRoundStart          "saxton_hale/saxton_hale_responce_start" //1-5
-#define HaleJump                "saxton_hale/saxton_hale_responce_jump"            //1-2
-#define HaleRageSound           "saxton_hale/saxton_hale_responce_rage"           //1-4
-#define HaleKillMedic           "saxton_hale/saxton_hale_responce_kill_medic.wav"
-#define HaleKillSniper1         "saxton_hale/saxton_hale_responce_kill_sniper1.wav"
-#define HaleKillSniper2         "saxton_hale/saxton_hale_responce_kill_sniper2.wav"
-#define HaleKillSpy1            "saxton_hale/saxton_hale_responce_kill_spy1.wav"
-#define HaleKillSpy2            "saxton_hale/saxton_hale_responce_kill_spy2.wav"
-#define HaleKillEngie1          "saxton_hale/saxton_hale_responce_kill_eggineer1.wav"
-#define HaleKillEngie2          "saxton_hale/saxton_hale_responce_kill_eggineer2.wav"
-#define HaleKSpreeNew           "saxton_hale/saxton_hale_responce_spree"  //1-5
-#define HaleWin                 "saxton_hale/saxton_hale_responce_win"          //1-2
-#define HaleLastMan             "saxton_hale/saxton_hale_responce_lastman"  //1-5
-//#define HaleLastMan2Fixed     "saxton_hale/saxton_hale_responce_lastman2.wav"
-#define HaleFail                "saxton_hale/saxton_hale_responce_fail"            //1-3
-
-//===1.32 responces===
-#define HaleJump132             "saxton_hale/saxton_hale_132_jump_" //1-2
-#define HaleStart132            "saxton_hale/saxton_hale_132_start_"   //1-5
-#define HaleKillDemo132         "saxton_hale/saxton_hale_132_kill_demo.wav"
-#define HaleKillEngie132        "saxton_hale/saxton_hale_132_kill_engie_" //1-2
-#define HaleKillHeavy132        "saxton_hale/saxton_hale_132_kill_heavy.wav"
-#define HaleKillScout132        "saxton_hale/saxton_hale_132_kill_scout.wav"
-#define HaleKillSpy132          "saxton_hale/saxton_hale_132_kill_spie.wav"
-#define HaleKillPyro132         "saxton_hale/saxton_hale_132_kill_w_and_m1.wav"
-#define HaleSappinMahSentry132  "saxton_hale/saxton_hale_132_kill_toy.wav"
-#define HaleKillKSpree132       "saxton_hale/saxton_hale_132_kspree_"    //1-2
-#define HaleKillLast132         "saxton_hale/saxton_hale_132_last.wav"
-#define HaleStubbed132          "saxton_hale/saxton_hale_132_stub_"  //1-4
-
-//===New Vagineer's responces===
-#define VagineerRoundStart      "saxton_hale/vagineer_responce_intro.wav"
-#define VagineerJump            "saxton_hale/vagineer_responce_jump_"          //1-2
-#define VagineerRageSound2      "saxton_hale/vagineer_responce_rage_"            //1-4
-#define VagineerKSpreeNew       "saxton_hale/vagineer_responce_taunt_"        //1-5
-#define VagineerFail            "saxton_hale/vagineer_responce_fail_"          //1-2
 #define SOUNDEXCEPT_MUSIC       0
 #define SOUNDEXCEPT_VOICE       1
+
 #if defined _steamtools_included
 new bool:steamtools = false;
 #endif
+
 new OtherTeam = 2;
 new HaleTeam = 3;
 new VSHRoundState = -1;
@@ -576,6 +285,7 @@ new KSpreeCount = 1;
 new Float:UberRageCount;
 new Float:GlowTimer;
 new bool:bEnableSuperDuperJump;
+
 new Handle:cvarVersion;
 new Handle:cvarHaleSpeed;
 new Handle:cvarPointDelay;
@@ -593,6 +303,30 @@ new Handle:cvarCircuitStun;
 new Handle:cvarForceSpecToHale;
 new Handle:cvarForceHaleTeam;
 new Handle:cvarDebugMessages;
+
+/*
+enum cvar
+{
+    Handle:Version;
+    Handle:HaleSpeed;
+    Handle:PointDelay;
+    Handle:RageDMG;
+    Handle:RageDist;
+    Handle:Announce;
+    Handle:Specials;
+    Handle:Enabled;
+    Handle:AliveToEnable;
+    Handle:PointType;
+    Handle:Crits;
+    Handle:RageSentry;
+    Handle:FirstRound;
+    Handle:CircuitStun;
+    Handle:ForceSpecToHale;
+    Handle:ForceHaleTeam;
+    Handle:DebugMessages;
+}
+*/
+
 new Handle:PointCookie;
 new Handle:MusicCookie;
 new Handle:VoiceCookie;
@@ -1344,6 +1078,7 @@ public AddToDownload()
     new String:extensions[][] = { ".mdl", ".dx80.vtx", ".dx90.vtx", ".sw.vtx", ".vvd", ".phy" };
     new String:extensionsb[][] = { ".vtf", ".vmt" };
     decl i;
+
     for (i = 0; i < sizeof(extensions); i++)
     {
         Format(s, PLATFORM_MAX_PATH, "%s%s", HaleModelPrefix, extensions[i]);
@@ -1354,35 +1089,47 @@ public AddToDownload()
 
         if (bSpecials)
         {
+
+#if defined VAGINEER_ON
             Format(s, PLATFORM_MAX_PATH, "%s%s", VagineerModelPrefix, extensions[i]);
             if (FileExists(s, true))
             {
                 AddFileToDownloadsTable(s);
             }
+#endif
+#if defined HHH_ON
 
             Format(s, PLATFORM_MAX_PATH, "%s%s", HHHModelPrefix, extensions[i]);
             if (FileExists(s, true))
             {
                 AddFileToDownloadsTable(s);
             }
+#endif
+#if defined CBS_ON
 
             Format(s, PLATFORM_MAX_PATH, "%s%s", CBSModelPrefix, extensions[i]);
             if (FileExists(s, true))
             {
                 AddFileToDownloadsTable(s);
             }
+#endif
+#if defined NUE_HOUJUU_ON
 
             Format(s, PLATFORM_MAX_PATH, "%s%s", NueModelPrefix, extensions[i]);
             if (FileExists(s, true))
             {
                 AddFileToDownloadsTable(s);
             }
+#endif
+#if defined ASTRONAUT_ON
 
             Format(s, PLATFORM_MAX_PATH, "%s%s", AstroModelPrefix, extensions[i]);
             if (FileExists(s, true))
             {
                 AddFileToDownloadsTable(s);
             }
+#endif
+#if defined CAVE_JOHNSON_ON
 
             Format(s, PLATFORM_MAX_PATH, "%s%s", CaveModelPrefix, extensions[i]);
             if (FileExists(s, true))
@@ -1394,7 +1141,7 @@ public AddToDownload()
             {
                 AddFileToDownloadsTable(s);
             }
-
+#endif
 #if defined EASTER_BUNNY_ON
             Format(s, PLATFORM_MAX_PATH, "%s%s", BunnyModelPrefix, extensions[i]);
             if (FileExists(s, true))
@@ -1419,27 +1166,37 @@ public AddToDownload()
 
     if (bSpecials)
     {
-        PrecacheModel(VagineerModel, true);
-        PrecacheModel(HHHModel, true);
-        PrecacheModel(CBSModel, true);
-        PrecacheModel(NueModel, true);
-        PrecacheModel(AstroModel, true);
-        PrecacheModel(CaveModel, true);
-        PrecacheModel(LemonModel, true);
+
+#if defined VAGINEER_ON
+        Vagineer_AddToDownloads();
+#endif
+
+#if defined HHH_ON
+        HHH_AddToDownloads();
+#endif
+
+#if defined CBS_ON
+        CBS_AddToDownloads();
+#endif
+
+#if defined NUE_HOUJUU_ON
+        Nue_AddToDownloads();
+#endif
+
+#if defined ASTRONAUT_ON
+        Astronaut_AddToDownloads();
+#endif
+
+#if defined CAVE_JOHNSON_ON
+        CaveJohnson_AddToDownloads();
+#endif
+
+#if defined GUARDIAN_ON
+        Guardian_AddToDownloads();
+#endif
+
 #if defined EASTER_BUNNY_ON
-        PrecacheModel(BunnyModel, true);
-        PrecacheModel(EggModel, true);
-        //      PrecacheModel(ReloadEggModel, true);
-        AddFileToDownloadsTable("materials/models/player/easter_demo/demoman_head_red.vmt");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/easter_body.vmt");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/easter_body.vtf");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/easter_rabbit.vmt");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/easter_rabbit.vtf");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/easter_rabbit_normal.vtf");
-        AddFileToDownloadsTable("materials/models/props_easteregg/c_easteregg.vmt");
-        AddFileToDownloadsTable("materials/models/props_easteregg/c_easteregg.vtf");
-        AddFileToDownloadsTable("materials/models/props_easteregg/c_easteregg_gold.vmt");
-        AddFileToDownloadsTable("materials/models/player/easter_demo/eyeball_r.vmt");
+        EasterBunny_AddToDownloads();
 #endif
     }
 
@@ -1459,23 +1216,6 @@ public AddToDownload()
         AddFileToDownloadsTable(s);
     }
 
-    for (i = 0; i < sizeof(NueMaterials); i++)
-    {
-        Format(s, PLATFORM_MAX_PATH, "%s", NueMaterials[i]);
-        if (FileExists(s, true))
-        {
-            AddFileToDownloadsTable(s);
-        }
-    }
-
-    for (i = 0; i < sizeof(AstroMaterials); i++)
-    {
-        Format(s, PLATFORM_MAX_PATH, "%s", AstroMaterials[i]);
-        if (FileExists(s, true))
-        {
-            AddFileToDownloadsTable(s);
-        }
-    }
 
     AddFileToDownloadsTable("materials/models/player/saxton_hale/sniper_head.vtf");
     AddFileToDownloadsTable("materials/models/player/saxton_hale/sniper_head_red.vmt");
@@ -1486,17 +1226,6 @@ public AddToDownload()
     AddFileToDownloadsTable("materials/models/player/saxton_hale/hale_egg.vtf");
     AddFileToDownloadsTable("materials/models/player/saxton_hale/hale_egg.vmt");
 
-    //Cave Johnson Materials
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave.vtf");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_blue.vmt");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_head.vtf");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_head_blue.vmt");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_head_red.vmt");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_normal.vtf");
-    AddFileToDownloadsTable("materials/freak_fortress_2/cavejohnson/cave_red.vmt");
-
-    AddFileToDownloadsTable("materials/models/weapons/c_items/c_lemon.vmt");
-    AddFileToDownloadsTable("materials/models/weapons/c_items/c_lemon.vtf");
 
     PrecacheSound(HaleComicArmsFallSound, true);
     Format(s, PLATFORM_MAX_PATH, "sound/%s", HaleComicArmsFallSound);
@@ -1515,48 +1244,6 @@ public AddToDownload()
         PrecacheSound(s, true);
         Format(s, PLATFORM_MAX_PATH, "%s0%i.wav", HHHAttack, i);
         PrecacheSound(s, true);
-    }
-    if (bSpecials)
-    {
-        PrecacheSound("ui/halloween_boss_summoned_fx.wav", true);
-        PrecacheSound("ui/halloween_boss_defeated_fx.wav", true);
-        PrecacheSound(VagineerLastA, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerLastA);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(VagineerStart, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerStart);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(VagineerRageSound, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerRageSound);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(VagineerKSpree, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerKSpree);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(VagineerKSpree2, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerKSpree2);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(VagineerHit, true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerHit);
-        AddFileToDownloadsTable(s);
-        PrecacheSound(HHHRage, true);
-        PrecacheSound(HHHRage2, true);
-        PrecacheSound(CBS0, true);
-        PrecacheSound(CBS1, true);
-        PrecacheSound(HHHTheme, true);
-        PrecacheSound(CBSTheme, true);
-        AddFileToDownloadsTable("sound/saxton_hale/the_millionaires_holiday.mp3");
-        PrecacheSound(CBSJump1, true);
-
-        for (i = 1; i <= 25; i++)
-        {
-            if (i <= 9)
-            {
-                Format(s, PLATFORM_MAX_PATH, "%s%02i.wav", CBS2, i);
-                PrecacheSound(s, true);
-            }
-            Format(s, PLATFORM_MAX_PATH, "%s%02i.wav", CBS4, i);
-            PrecacheSound(s, true);
-        }
     }
 
     PrecacheSound(HaleKillMedic, true);
@@ -1614,22 +1301,6 @@ public AddToDownload()
             Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
             AddFileToDownloadsTable(s);
 
-            if (bSpecials)
-            {
-                Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerJump, i);
-                PrecacheSound(s, true);
-                Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
-                AddFileToDownloadsTable(s);
-                Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerRageSound2, i);
-                PrecacheSound(s, true);
-                Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
-                AddFileToDownloadsTable(s);
-                Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerFail, i);
-                PrecacheSound(s, true);
-                Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
-                AddFileToDownloadsTable(s);
-            }
-
             Format(s, PLATFORM_MAX_PATH, "%s%i.wav", HaleWin, i);
             PrecacheSound(s, true);
             Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
@@ -1673,17 +1344,6 @@ public AddToDownload()
         Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
         AddFileToDownloadsTable(s);
 
-        if (bSpecials)
-        {
-            PrecacheSound(VagineerRoundStart, true);
-            Format(s, PLATFORM_MAX_PATH, "sound/%s", VagineerRoundStart);
-            AddFileToDownloadsTable(s);
-            Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerKSpreeNew, i);
-            PrecacheSound(s, true);
-            Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
-            AddFileToDownloadsTable(s);
-        }
-
         Format(s, PLATFORM_MAX_PATH, "%s%i.wav", HaleKSpreeNew, i);
         PrecacheSound(s, true);
         Format(s, PLATFORM_MAX_PATH, "sound/%s", s);
@@ -1706,201 +1366,14 @@ public AddToDownload()
     PrecacheSound("vo/halloween_boss/knight_pain03.wav", true);
     PrecacheSound("vo/halloween_boss/knight_death01.wav", true);
     PrecacheSound("vo/halloween_boss/knight_death02.wav", true);
+    PrecacheSound("misc/halloween/spell_teleport.wav", true);
+    PrecacheSound("misc/halloween/spell_overheal.wav", true);
     PrecacheSound("weapons/barret_arm_zap.wav", true);
     PrecacheSound("player/doubledonk.wav", true);
     PrecacheSound("items/ammo_pickup.wav", true);
     PrecacheSound("weapons/dispenser_generate_metal.wav", true);
-    PrecacheSound("misc/halloween/spell_teleport.wav", true);
-    PrecacheSound("misc/halloween/spell_overheal.wav", true);
     //PrecacheSound("weapons/weapons/wrench_hit_build_success1.wav", true);
     //PrecacheSound("weapons/weapons/wrench_hit_build_success2.wav", true);
-#if defined EASTER_BUNNY_ON
-    for (i = 0; i < sizeof(BunnyWin); i++)
-    {
-        PrecacheSound(BunnyWin[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyJump); i++)
-    {
-        PrecacheSound(BunnyJump[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyRage); i++)
-    {
-        PrecacheSound(BunnyRage[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyFail); i++)
-    {
-        PrecacheSound(BunnyFail[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyKill); i++)
-    {
-        PrecacheSound(BunnyKill[i], true);
-    }
-    for (i = 0; i < sizeof(BunnySpree); i++)
-    {
-        PrecacheSound(BunnySpree[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyLast); i++)
-    {
-        PrecacheSound(BunnyLast[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyPain); i++)
-    {
-        PrecacheSound(BunnyPain[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyStart); i++)
-    {
-        PrecacheSound(BunnyStart[i], true);
-    }
-    for (i = 0; i < sizeof(BunnyRandomVoice); i++)
-    {
-        PrecacheSound(BunnyRandomVoice[i], true);
-    }
-#endif
-
-    PrecacheSound(GuardianWin, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueWin);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(GuardianWarn, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueWin);
-    AddFileToDownloadsTable(s);
-
-    for (i = 0; i < sizeof(GuardianChase); i++)
-    {
-        PrecacheSound(GuardianChase[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", GuardianChase[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    for (i = 0; i < sizeof(NueJump); i++)
-    {
-        PrecacheSound(NueJump[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", NueJump[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    for (i = 0; i < sizeof(NueKill); i++)
-    {
-        PrecacheSound(NueKill[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", NueKill[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    for (i = 0; i < sizeof(NueRage); i++)
-    {
-        PrecacheSound(NueRage[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", NueRage[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    PrecacheSound(NueWin, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueWin);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueStab, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueStab);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueFail, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueFail);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueStart, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueStart);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueGone, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueGone);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueAppear, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueAppear);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(Death2hu, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", Death2hu);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(NueMusic, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", NueMusic);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroWin, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroWin);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroLast, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroLast);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroStab, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroStab);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroFail, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroFail);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroStart, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroStart);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroMusic, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroMusic);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(AstroRage, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroRage);
-    AddFileToDownloadsTable(s);
-
-    for (i = 0; i < sizeof(AstroRandom); i++)
-    {
-        PrecacheSound(AstroRandom[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", AstroRandom[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    for (i = 0; i < sizeof(CaveStart); i++)
-    {
-        PrecacheSound(CaveStart[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveStart[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    for (i = 0; i < sizeof(CaveSpree); i++)
-    {
-        PrecacheSound(CaveSpree[i], true);
-        Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveSpree[i]);
-        AddFileToDownloadsTable(s);
-    }
-
-    PrecacheSound(CaveStab, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveStab);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(CaveFail, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveFail);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(CaveRage, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveRage);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(CaveWin, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", CaveWin);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(PortalMusic, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", PortalMusic);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(PortalMusicDuo, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", PortalMusicDuo);
-    AddFileToDownloadsTable(s);
-
-    PrecacheSound(PortalMusicFinal, true);
-    Format(s, PLATFORM_MAX_PATH, "sound/%s", PortalMusicFinal);
-    AddFileToDownloadsTable(s);
 }
 
 public CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -2090,355 +1563,6 @@ public Action:Timer_Announce(Handle:hTimer)
     }
     return Plugin_Continue;
 }
-
-stock bool:IsSaxtonHaleMap(bool:forceRecalc = false)
-{
-    static bool:found = false;
-    static bool:isVSHMap = false;
-
-    if (forceRecalc)
-    {
-        isVSHMap = false;
-        found = false;
-    }
-
-    if (!found)
-    {
-        decl String:s[PLATFORM_MAX_PATH];
-        GetCurrentMap(currentmap, sizeof(currentmap));
-
-        if (FileExists("bNextMapToHale"))
-        {
-            isVSHMap = true;
-            found = true;
-            return true;
-        }
-
-        BuildPath(Path_SM, s, PLATFORM_MAX_PATH, "configs/saxton_hale/saxton_hale_maps.cfg");
-
-        if (!FileExists(s))
-        {
-            LogError("[VSH] Unable to find %s, disabling plugin.", s);
-            isVSHMap = false;
-            found = true;
-            return false;
-        }
-
-        new Handle:fileh = OpenFile(s, "r");
-
-        if (fileh == INVALID_HANDLE)
-        {
-            LogError("[VSH] Error reading maps from %s, disabling plugin.", s);
-            isVSHMap = false;
-            found = true;
-            return false;
-        }
-
-        new pingas = 0;
-
-        while (!IsEndOfFile(fileh) && ReadFileLine(fileh, s, sizeof(s)) && (pingas < 100))
-        {
-            pingas++;
-            if (pingas == 100)
-                LogError("[VS Saxton Hale] Breaking infinite loop when trying to check the map.");
-            Format(s, strlen(s) - 1, s);
-            if (strncmp(s, "//", 2, false) == 0) continue;
-            if ((StrContains(currentmap, s, false) != -1) || (StrContains(s, "all", false) == 0))
-            {
-                CloseHandle(fileh);
-                isVSHMap = true;
-                found = true;
-                return true;
-            }
-        }
-
-        CloseHandle(fileh);
-    }
-
-    return isVSHMap;
-}
-
-stock bool:MapHasMusic(bool:forceRecalc = false)
-{
-    static bool:hasMusic;
-    static bool:found = false;
-
-    if (forceRecalc)
-    {
-        found = false;
-        hasMusic = false;
-    }
-
-    if (!found)
-    {
-        new i = -1;
-        decl String:name[64];
-
-        while ((i = FindEntityByClassname2(i, "info_target")) != -1)
-        {
-            GetEntPropString(i, Prop_Data, "m_iName", name, sizeof(name));
-            if (strcmp(name, "hale_no_music", false) == 0) hasMusic = true;
-        }
-        found = true;
-    }
-
-    return hasMusic;
-}
-
-stock bool:CheckToChangeMapDoors()
-{
-    decl String:s[PLATFORM_MAX_PATH];
-    GetCurrentMap(currentmap, sizeof(currentmap));
-    checkdoors = false;
-
-    BuildPath(Path_SM, s, PLATFORM_MAX_PATH, "configs/saxton_hale/saxton_hale_doors.cfg");
-
-    if (!FileExists(s))
-    {
-        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
-        {
-            checkdoors = true;
-        }
-        return;
-    }
-
-    new Handle:fileh = OpenFile(s, "r");
-
-    if (fileh == INVALID_HANDLE)
-    {
-        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
-        {
-            checkdoors = true;
-        }
-        return;
-    }
-
-    while (!IsEndOfFile(fileh) && ReadFileLine(fileh, s, sizeof(s)))
-    {
-        Format(s, strlen(s) - 1, s);
-        if (strncmp(s, "//", 2, false) == 0)
-        {
-            continue;
-        }
-
-        if (StrContains(currentmap, s, false) != -1 || StrContains(s, "all", false) == 0)
-        {
-            CloseHandle(fileh);
-            checkdoors = true;
-            return;
-        }
-    }
-
-    CloseHandle(fileh);
-}
-
-stock bool:CheckNextSpecial()
-{
-    if (!bSpecials)
-    {
-        Special = VSHSpecial_Hale;
-        return true;
-    }
-
-    new bool:see[MAXPLAYERS+1];
-    new tHale = FindNextHale(see);
-
-    if (NextHale > 0 && GetBossCookie(NextHale) > 0)
-    {
-        Incoming = GetBossCookie(NextHale);
-        Special = Incoming;
-        Incoming = VSHSpecial_None;
-        return true;
-    }
-
-    if (GetBossCookie(tHale) > 0)
-    {
-        Incoming = GetBossCookie(tHale);
-        Special = Incoming;
-        Incoming = VSHSpecial_None;
-        return true;
-    }  
-
-    if (Incoming != VSHSpecial_None)
-    {
-        Special = Incoming;
-        Incoming = VSHSpecial_None;
-        return true;
-    }
-
-    while (Incoming == VSHSpecial_None || (Special && Special == Incoming))
-    {
-        Incoming = GetRandomInt(0, 10);
-        if (Special != VSHSpecial_Hale && !GetRandomInt(0, 5))
-        {
-            Incoming = VSHSpecial_Hale;
-        }
-        else
-        {
-            switch (Incoming)
-            {
-                case 1:
-                    Incoming = VSHSpecial_Vagineer;
-                case 2:
-                    Incoming = VSHSpecial_HHH;
-                case 3:
-                    Incoming = VSHSpecial_CBS;
-#if defined EASTER_BUNNY_ON
-                case 4: // 64
-                    Incoming = VSHSpecial_Bunny;
-#endif
-                case 5:
-                    Incoming = bMedieval ? VSHSpecial_Hale : VSHSpecial_Cave;
-                case 6:
-                    Incoming = VSHSpecial_Nue;
-                case 7:
-                    Incoming = VSHSpecial_Astro;
-                case 666:
-                    Incoming = g_bCanFog ? VSHSpecial_Guard : VSHSpecial_Hale;
-                default:
-                    Incoming = VSHSpecial_Hale;
-            }
-            if (IsDate(12, 15) && !GetRandomInt(0, 7)) //IsDecemberHoliday()
-            {
-                CPrintToChatAll("{olive}[VSH]{default} It's like Christmas morning!");
-                Incoming = VSHSpecial_CBS;
-            }
-            if (IsDate(10, 15) && !GetRandomInt(0, 7)) //IsHalloweenHoliday()
-            {
-                CPrintToChatAll("{olive}[VSH]{default} Happy Halloween!");
-                Incoming = VSHSpecial_HHH;
-            }
-#if defined EASTER_BUNNY_ON
-            if (IsDate(3, 25, 4, 20) && !GetRandomInt(0, 7)) //IsEasterHoliday()
-            {
-                CPrintToChatAll("{olive}[VSH]{default} Happy Easter!");
-                Incoming = VSHSpecial_Bunny;
-            }
-#endif
-        }
-    }
-
-    Special = Incoming;
-    Incoming = VSHSpecial_None;
-
-    return true;        //OH GOD WHAT AM I DOING THIS ALWAYS RETURNS TRUE (still better than using QueuePanelH as a dummy)
-}
-
-stock bool:IsDate(StartMonth, StartDate, EndMonth = 0, EndDate = 0, bool:forceRecalc = false)
-{
-    static iMonth;
-    static iDate;
-    static bool:found = false;
-
-    if (forceRecalc)
-    {
-        found = false;
-        iMonth = 0;
-        iDate = 0;
-    }
-
-    if (!found)
-    {
-        new timestamp = GetTime();
-        decl String:month[32], String:date[32];
-
-        FormatTime(month, sizeof(month), "%m", timestamp);
-        FormatTime(date, sizeof(date), "%d", timestamp);
-
-        iMonth = StringToInt(month);
-        iDate = StringToInt(date);
-        found = true;
-    }
-
-    return (iMonth == StartMonth && iDate >= StartDate) || (EndMonth && EndDate && (StartMonth < iMonth <= EndMonth) && (iDate <= EndDate));
-}
-
-/*stock bool:IsHalloweenHoliday(bool:forceRecalc = false)
-{
-    static iMonth;
-    static iDate;
-    static bool:found = false;
-
-    if (forceRecalc)
-    {
-        found = false;
-        iMonth = 0;
-        iDate = 0;
-    }
-
-    if (!found)
-    {
-        new timestamp = GetTime();
-        decl String:month[32], String:date[32];
-
-        FormatTime(month, sizeof(month), "%m", timestamp);
-        FormatTime(date, sizeof(date), "%d", timestamp);
-
-        iMonth = StringToInt(month);
-        iDate = StringToInt(date);
-        found = true;
-    }
-
-    return (iMonth == 10 && iDate >= 15);
-}
-
-stock bool:IsEasterHoliday(bool:forceRecalc = false)
-{
-    static iMonth;
-    static iDate;
-    static bool:found = false;
-
-    if (forceRecalc)
-    {
-        found = false;
-        iMonth = 0;
-        iDate = 0;
-    }
-
-    if (!found)
-    {
-        new timestamp = GetTime();
-        decl String:month[32], String:date[32];
-
-        FormatTime(month, sizeof(month), "%m", timestamp);
-        FormatTime(date, sizeof(date), "%d", timestamp);
-
-        iMonth = StringToInt(month);
-        iDate = StringToInt(date);
-        found = true;
-    }
-
-    return (iMonth == 3 && iDate >= 25) || (iMonth == 4 && iDate < 20);
-}
-
-stock bool:IsDecemberHoliday(bool:forceRecalc = false)
-{
-    static iMonth;
-    static iDate;
-    static bool:found = false;
-
-    if (forceRecalc)
-    {
-        found = false;
-        iMonth = 0;
-        iDate = 0;
-    }
-
-    if (!found)
-    {
-        new timestamp = GetTime();
-        decl String:month[32], String:date[32];
-
-        FormatTime(month, sizeof(month), "%m", timestamp);
-        FormatTime(date, sizeof(date), "%d", timestamp);
-
-        iMonth = StringToInt(month);
-        iDate = StringToInt(date);
-        found = true;
-    }
-
-    return (iMonth == 12 && iDate >= 15);
-}*/
 
 public Action:event_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
@@ -2775,161 +1899,6 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     return Plugin_Continue;
 }
 
-stock SearchForItemPacks()
-{
-    new bool:foundAmmo = false, bool:foundHealth = false;
-
-    new ent;
-
-    decl Float:pos[3];
-
-    if (StrEqual(currentmap, "vsh_minegay_b3", false))
-    {
-        DOWHILE_ENTFOUND(ent, "func_breakable")
-        {
-            decl String:tName[32];
-            GetEntPropString(ent, Prop_Data, "m_iName", tName, sizeof(tName));
-            if (StrEqual(tName, "medic_car_break", false))
-            {
-                SetVariantInt(20000);
-                AcceptEntityInput(ent, "SetHealth");
-            }
-            else if (GetEntProp(ent, Prop_Data, "m_iHammerID") == 3513)
-            {
-                AcceptEntityInput(ent, "Break");
-            }
-        }
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_ammopack_full")
-    {
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-
-        if (Enabled)
-        {
-            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-            AcceptEntityInput(ent, "Kill");
-            new ent2 = CreateEntityByName("item_ammopack_small");
-            TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
-            DispatchSpawn(ent2);
-            SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-            foundAmmo = true;
-        }
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_ammopack_medium")
-    {
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-
-        if (Enabled)
-        {
-            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-            AcceptEntityInput(ent, "Kill");
-            new ent2 = CreateEntityByName("item_ammopack_small");
-            TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
-            DispatchSpawn(ent2);
-            SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-            foundAmmo = true;
-        }
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_ammopack_small")
-    {
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-        foundAmmo = true;
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_healthkit_small")
-    {
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-
-        if (Enabled)
-        {
-            if (StrEqual(currentmap, "arena_artefact_v3", false))
-            {
-                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-                AcceptEntityInput(ent, "Kill");
-                new ent2 = CreateEntityByName("item_healthkit_medium");
-                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
-                DispatchSpawn(ent2);
-                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-            }
-        }
-        foundHealth = true;
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_healthkit_medium")
-    {
-        foundHealth = true;
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-    }
-
-    DOWHILE_ENTFOUND(ent, "item_healthkit_full")
-    {
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-
-        if (Enabled)
-        {
-            if (StrEqual(currentmap, "vsh_military_area_b1", false))
-            {
-                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-                AcceptEntityInput(ent, "Kill");
-                new ent2 = !GetRandomInt(0, 3) ? CreateEntityByName("item_healthkit_medium") : CreateEntityByName("item_healthkit_small");
-                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
-                DispatchSpawn(ent2);
-
-                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-            }
-
-            if (StrEqual(currentmap, "vsh_old_town_b3", false))
-            {
-                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-                AcceptEntityInput(ent, "Kill");
-                new ent2 = CreateEntityByName("item_healthkit_medium");
-                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
-                DispatchSpawn(ent2);
-
-                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-            }
-        }
-        foundHealth = true;
-    }
-
-    if (!foundAmmo)
-    {
-        SpawnRandomAmmo();
-    }
-
-    if (!foundHealth)
-    {
-        SpawnRandomHealth();
-    }
-
-    // Deprecated - removed all team_round_timers via stripper:source
-    /*if (StrEqual(currentmap, "vsh_dustshowdown_new", false))
-    {
-        //Stop the autowin timer in cp_degrootkeep
-
-        DOWHILE_ENTFOUND(ent, "team_round_timer")
-        {
-            if (ent > MaxClients && IsValidEdict(ent))
-            {
-                AcceptEntityInput(ent, "Disable");
-                SetVariantInt(999999);
-                AcceptEntityInput(ent, "SetTime");
-            }
-        }
-    }*/
-}
-
-stock SpawnRandomAmmo()
-{
-}
-
-stock SpawnRandomHealth()
-{
-}
-
 public Action:Timer_EnableCap(Handle:timer)
 {
     if (VSHRoundState == -1)
@@ -2951,17 +1920,6 @@ public Action:Timer_EnableCap(Handle:timer)
             }
         }
     }
-}
-
-stock GetTeamPlayerCount(TFTeam:team)
-{
-    new count = 0;
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i) && GetClientTeam(i) == _:team)
-            count++;
-    }
-    return count;
 }
 
 public Action:Timer_CheckDoors(Handle:hTimer)
@@ -3062,13 +2020,13 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
             }
             case VSHSpecial_Vagineer:
             {
-                Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerKSpreeNew, GetRandomInt(1, 5));
+                Format(s, PLATFORM_MAX_PATH, Vagineer_RandomTaunt());
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, BunnyWin[GetRandomInt(0, sizeof(BunnyWin)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomWin());
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, _, NULL_VECTOR, false, 0.0);
             }
@@ -3272,54 +2230,6 @@ public Action:Timer_CalcScores(Handle:timer)
     CalcScores();
 }
 
-stock CalcScores()
-{
-    decl j, damage;
-    new bool:spec = GetConVarBool(cvarForceSpecToHale);
-    botqueuepoints += 5;
-
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i))
-        {
-            damage = Damage[i];
-
-            new Handle:aevent = CreateEvent("player_escort_score", true);
-
-            SetEventInt(aevent, "player", i);
-
-            for (j = 0; damage - 600 > 0; damage -= 600, j++) {}
-
-            SetEventInt(aevent, "points", j);
-            FireEvent(aevent);
-
-            if (i == Hale)
-            {
-                if (IsFakeClient(Hale))
-                {
-                    botqueuepoints = 0;
-                }
-                else
-                {
-                    SetClientQueuePoints(i, 0);
-                }
-            }
-            else if (!IsFakeClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || spec))
-            {
-                if (!CheckHaleToggle(i))
-                {
-                    CPrintToChat(i, "{olive}[VSH]{default} %t", "vsh_add_points", 10);
-                    SetClientQueuePoints(i, GetClientQueuePoints(i) + 10);
-                }
-                else
-                {
-                    CPrintToChat(i, "{olive}[VSH]{default} You get 0 queue points. !haletoggle to enable.");
-                }
-            }
-        }
-    }
-}
-
 public Action:StartResponceTimer(Handle:hTimer)
 {
     decl String:s[PLATFORM_MAX_PATH];
@@ -3342,11 +2252,11 @@ public Action:StartResponceTimer(Handle:hTimer)
         }
         case VSHSpecial_Cave:
         {
-            strcopy(s, PLATFORM_MAX_PATH, CaveStart[GetRandomInt(0, sizeof(CaveStart)-1)]);
+            strcopy(s, PLATFORM_MAX_PATH, CaveJohnson_RandomStart());
         }
         case VSHSpecial_Bunny:
         {
-            strcopy(s, PLATFORM_MAX_PATH, BunnyStart[GetRandomInt(0, sizeof(BunnyStart)-1)]);
+            strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomStart());
         }
         case VSHSpecial_Vagineer:
         {
@@ -3707,74 +2617,6 @@ public Action:Timer_MusicTheme(Handle:timer, any:pack)
     return Plugin_Continue;
 }
 
-stock EmitSoundToAllExcept(exceptiontype = SOUNDEXCEPT_MUSIC, const String:sample[],
-    entity = SOUND_FROM_PLAYER,
-    channel = SNDCHAN_AUTO,
-    level = SNDLEVEL_NORMAL,
-    flags = SND_NOFLAGS,
-Float:volume = SNDVOL_NORMAL,
-        pitch = SNDPITCH_NORMAL,
-        speakerentity = -1,
-        const Float:origin[3] = NULL_VECTOR,
-        const Float:dir[3] = NULL_VECTOR,
-        bool:updatePos = true,
-    Float:soundtime = 0.0)
-{
-
-    new clients[MaxClients];
-    new total = 0;
-
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsClientInGame(i) && CheckSoundException(i, exceptiontype))
-        {
-            clients[total++] = i;
-        }
-    }
-
-    if (!total)
-    {
-        return;
-    }
-
-    EmitSound(clients, total, sample, entity, channel,
-        level, flags, volume, pitch, speakerentity,
-        origin, dir, updatePos, soundtime);
-}
-
-stock bool:CheckSoundException(client, excepttype)
-{
-    if (!IsValidClient(client))
-    {
-        return false;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return true;
-    }
-
-    decl String:strCookie[32];
-
-    if (excepttype == SOUNDEXCEPT_VOICE)
-    {
-        GetClientCookie(client, VoiceCookie, strCookie, sizeof(strCookie));
-    }
-    else
-    {
-        GetClientCookie(client, MusicCookie, strCookie, sizeof(strCookie));
-    }
-
-    if (strCookie[0] == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return bool:StringToInt(strCookie);
-    }
-}
-
 SetClientSoundOptions(client, excepttype, bool:on)
 {
     if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
@@ -3895,30 +2737,6 @@ public Action:Timer_SkipHalePanel(Handle:hTimer)
         j++;
     }
     while (i < 3 && j < MAXPLAYERS + 1);
-}
-
-stock SkipHalePanelNotify(client, bool:newchoice = true)
-{
-    if (!Enabled || !IsValidClient(client) || IsVoteInProgress() || CheckHaleToggle(client))
-    {
-        return;
-    }
-
-    new Handle:panel = CreatePanel();
-    decl String:s[256];
-
-    SetPanelTitle(panel, "[VSH] You're Hale next!");
-    Format(s, sizeof(s), "%t\nAlternatively, use !hale_resetq.", "vsh_to0_near");
-    CRemoveTags(s, sizeof(s));
-
-    ReplaceString(s, sizeof(s), "{olive}", "");
-    ReplaceString(s, sizeof(s), "{default}", "");
-
-    DrawPanelItem(panel, s);
-    SendPanelToClient(panel, client, SkipHalePanelH, 30);
-    CloseHandle(panel);
-
-    return;
 }
 
 public SkipHalePanelH(Handle:menu, MenuAction:action, param1, param2)
@@ -4989,97 +3807,6 @@ public Action:TF2Items_OnGiveNamedItem(client, String:classname[], iItemDefiniti
     CPrintToChdata("%N gived item and colleceted ammo %i %i idx %i", client, PrimaryMaxAmmo[client], SecondaryMaxAmmo[client], itemDefinitionIndex);
 }*/
 
-stock Handle:PrepareItemHandle(Handle:hItem, String:name[] = "", index = -1, const String:att[] = "", bool:dontpreserve = false)
-{
-    static Handle:hWeapon;
-    new addattribs = 0;
-
-    new String:weaponAttribsArray[32][32];
-    new attribCount = ExplodeString(att, " ; ", weaponAttribsArray, 32, 32);
-
-    new flags = OVERRIDE_ATTRIBUTES;
-    if (!dontpreserve)
-    {
-        flags |= PRESERVE_ATTRIBUTES;
-    }
-
-    if (hWeapon == INVALID_HANDLE)
-    {
-        hWeapon = TF2Items_CreateItem(flags);
-    }
-    else
-    {
-        TF2Items_SetFlags(hWeapon, flags);
-    }
-
-    //  new Handle:hWeapon = TF2Items_CreateItem(flags);    //INVALID_HANDLE;
-
-    if (hItem != INVALID_HANDLE)
-    {
-        addattribs = TF2Items_GetNumAttributes(hItem);
-
-        if (addattribs > 0)
-        {
-            for (new i = 0; i < 2 * addattribs; i += 2)
-            {
-                new bool:dontAdd = false;
-                new attribIndex = TF2Items_GetAttributeId(hItem, i);
-
-                for (new z = 0; z < attribCount + i; z += 2)
-                {
-                    if (StringToInt(weaponAttribsArray[z]) == attribIndex)
-                    {
-                        dontAdd = true;
-
-                        break;
-                    }
-                }
-
-                if (!dontAdd)
-                {
-                    IntToString(attribIndex, weaponAttribsArray[i + attribCount], 32);
-                    FloatToString(TF2Items_GetAttributeValue(hItem, i), weaponAttribsArray[i + 1 + attribCount], 32);
-                }
-            }
-
-            attribCount += 2 * addattribs;
-        }
-
-        CloseHandle(hItem); //probably returns false but whatever
-    }
-
-    if (name[0] != '\0')
-    {
-        flags |= OVERRIDE_CLASSNAME;
-        TF2Items_SetClassname(hWeapon, name);
-    }
-
-    if (index != -1)
-    {
-        flags |= OVERRIDE_ITEM_DEF;
-        TF2Items_SetItemIndex(hWeapon, index);
-    }
-
-    if (attribCount > 0)
-    {
-        TF2Items_SetNumAttributes(hWeapon, (attribCount / 2));
-        new i2 = 0;
-
-        for (new i = 0; i < attribCount && i < 32; i += 2)
-        {
-            TF2Items_SetAttribute(hWeapon, i2, StringToInt(weaponAttribsArray[i]), StringToFloat(weaponAttribsArray[i + 1]));
-            i2++;
-        }
-    }
-    else
-    {
-        TF2Items_SetNumAttributes(hWeapon, 0);
-    }
-
-    TF2Items_SetFlags(hWeapon, flags);
-
-    return hWeapon;
-}
 
 /*
 On spawn, see if we need to replace a weapon for another one
@@ -5158,193 +3885,6 @@ public Action:MakeNoHale(Handle:hTimer, any:clientid)
     return Plugin_Continue;
 }
 
-stock ReplaceList(client)
-{
-    if (IsValidEntity(FindPlayerBack(client, { 444 }, 1)))
-    {
-        TF2Attrib_SetByName(client, "self dmg push force increased", 1.8);
-        if (IsClientChdata(client)) CPrintToChdata("%N detected mantreads", client);
-    }
-    else
-    {
-        TF2Attrib_RemoveByName(client, "self dmg push force increased");
-        if (IsClientChdata(client)) CPrintToChdata("%N removed mantreads", client);
-    }
-
-    if (bMedieval)
-    {
-        return;
-    }
-
-    new weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-    new index = -1;
-
-    if (weapon > MaxClients && IsValidEdict(weapon))
-    {
-        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-
-        switch (index) // ReplacelistPrimary
-        {
-            case 41: // Natascha becomes Tank Goodness
-            {
-                if (GetEntProp(weapon, Prop_Send, "m_iEntityQuality") != 10)
-                {
-                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                    weapon = SpawnWeapon(client, "tf_weapon_minigun", 850, 64, 10, "87 ; 0.5 ; 178 ; 0.75 ; 1 ; 0.25 ; 6 ; 0.75 ; 57 ; 5 ; 26 ; 100");
-
-                    if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
-                    {
-                        CPrintToChat(client, "{olive}[VSH]{default} Equipped The Tank Goodness instead of Natascha.");
-                        VSHFlags[client] |= VSHFLAG_EQUIPMSG;
-                    }
-                    //PrimaryMaxAmmo[client] = 200;
-                }
-            }
-            case 424: // Tomislav becomes Maxine
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                weapon = SpawnWeapon(client, "tf_weapon_minigun", 41, 64, 10, "421 ; 1 ; 75 ; 3.0 ; 431 ; 6 ; 5 ; 1.2 ; 1 ; 0.75 ; 87 ; 0.575 ; 178 ; 0.75");
-            
-                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
-                {
-                    CPrintToChat(client, "{olive}[VSH]{default} Equipped Maxine instead of Tomislav.");
-                    VSHFlags[client] |= VSHFLAG_EQUIPMSG;
-                }
-               
-               //PrimaryMaxAmmo[client] = 200;
-            }
-            case 237: // Rocket Jumper
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                weapon = SpawnWeapon(client, "tf_weapon_rocketlauncher", 18, 1, 0, "265 ; 99999.0");
-                SetAmmo(client, 0, 20);
-                //PrimaryMaxAmmo[client] = 20;
-            }
-            case 772: // BFB
-            {
-                if (Special == VSHSpecial_HHH)
-                {
-                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                    weapon = SpawnWeapon(client, "tf_weapon_pep_brawler_blaster", 772, 64, 0, "3 ; 0.66 ; 418 ; 1 ; 49 ; 1 ; 54 ; 0.875 ; 419 ; 0 ; 532 ; 1");
-                    //PrimaryMaxAmmo[client] = 32;
-                }
-                else
-                {
-                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                    weapon = SpawnWeapon(client, "tf_weapon_pep_brawler_blaster", 772, 64, 0, "3 ; 0.66 ; 418 ; 1 ; 49 ; 1 ; 54 ; 0.875 ; 419 ; 0 ; 532 ; 0.25");
-                    //PrimaryMaxAmmo[client] = 32;
-                }
-            }
-            case 17, 204, 412: // Syringe gun
-            {
-                if (GetEntProp(weapon, Prop_Send, "m_iEntityQuality") != 10)
-                {
-                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
-                    SpawnWeapon(client, "tf_weapon_syringegun_medic", 17, 1, 10, "17 ; 0.05 ; 144 ; 1");
-                    //PrimaryMaxAmmo[client] = 150;
-                }
-            }
-        }
-    }
-
-    weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary);
-
-    if (weapon > MaxClients && IsValidEdict(weapon))
-    {
-        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-
-        switch (index) // ReplacelistSecondary
-        {
-            case 57: // Razorback
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-                weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 0, "1");
-                //PrimaryMaxAmmo[client] = 75;
-            }
-            /*case 46: // Bonk
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-                weapon = SpawnWeapon(client, "tf_weapon_lunchbox_drink", 163, 1, 0, "144 ; 2");
-            }*/
-            case 528: // Short Circuit
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-                weapon = SpawnWeapon(client, "tf_weapon_laser_pointer", 140, 1, 0, "1");
-            }
-            case 265: // Sticky Jumper becomes Quick Launcher
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-                weapon = SpawnWeapon(client, "tf_weapon_pipebomblauncher", 20, 1, 10, "6 ; 0.5 ; 126 ; -0.4 ; 1 ; 0.8 ; 3 ; 0.25 ; 100 ; 0.8 ; 207 ; 2.0 ; 89 ; -6");
-                SetAmmo(client, TFWeaponSlot_Secondary, 24);
-                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
-                {
-                    CPrintToChat(client, "{olive}[VSH]{default} Equipped The Quick Launcher instead of Sticky Jumper.");
-                    VSHFlags[client] |= VSHFLAG_EQUIPMSG;
-                }
-                //PrimaryMaxAmmo[client] = 24;
-            }
-            case 29, 211, 35, 663, 796, 805, 885, 894, 903, 912, 961, 970: // Mediguns & Kritzkrieg
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-                weapon = SpawnWeapon(client, "tf_weapon_medigun", 35, 5, 10, "10 ; 1.25 ; 178 ; 0.75");
-                SetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel", 0.42);
-
-                //Mortar's Mortifier
-                //else weapon = SpawnWeapon(client, "tf_weapon_medigun", 35, 5, 9, "178 ; 0.75 ; 269 ; 1 ; 9 ; 0.0 ; 7 ; -1.0 ; 134 ; 4");
-            }
-            case 998: // Vaccinator
-            {
-                SetEntProp(weapon, Prop_Send, "m_nChargeResistType", 1);
-            }
-            /*case 735, 736, 810, 831, 933, 1080, 1102:    //Remove sappers
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
-            }*/
-        }
-    }
-
-    // We just did the same code above...
-    /*if (IsValidEntity(FindPlayerBack(client, { 57 }, 1)))
-    {
-        RemovePlayerBack(client, { 57 }, 1);
-        weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 0, "1");
-        PrimaryMaxAmmo[client] = 75;
-    }*/
-
-    if (IsValidEntity(FindPlayerBack(client, { 642, 231 }, 2)))
-    {
-        weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 6, "15 ; 0 ; 1 ; 0.75");
-        //PrimaryMaxAmmo[client] = 75;
-    }
-
-    weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-
-    if (weapon > MaxClients && IsValidEdict(weapon))
-    {
-        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-
-        switch (index) // ReplaceListMelee
-        {
-            /*case 331: // Fists of Steel
-            {
-                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Melee);
-                weapon = SpawnWeapon(client, "tf_weapon_fists", 195, 1, 6, "1");
-            }*/
-            case 357: // Zatoichi
-            {
-                CreateTimer(1.0, Timer_NoHonorBound, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-            }
-            //case 142:
-            //{
-            //    SetEntityRenderMode(weapon, RENDER_TRANSCOLOR);
-            //    SetEntityRenderColor(weapon, 255, 255, 255, 75);
-            //}
-        }
-    }
-
-    return;
-}
-
 public Action:Timer_NoHonorBound(Handle:timer, any:userid)
 {
     new client = GetClientOfUserId(userid);
@@ -5371,132 +3911,6 @@ public Action:Timer_NoHonorBound(Handle:timer, any:userid)
             }
         }
     }
-}
-
-stock RemovePlayerTarge(client)
-{
-    new edict = MaxClients + 1;
-    while ((edict = FindEntityByClassname2(edict, "tf_wearable_demoshield")) != -1)
-    {
-        new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
-
-        if ((idx == 131 || idx == 406 || idx == 1099) && GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
-        {
-            TF2_RemoveWearable(client, edict);
-            //AcceptEntityInput(edict, "Kill");
-        }
-    }
-}
-
-stock RemovePlayerBack(client, indices[], len)
-{
-    if (len <= 0)
-    {
-        return;
-    }
-
-    new edict = MaxClients + 1;
-
-    while ((edict = FindEntityByClassname2(edict, "tf_wearable")) != -1)
-    {
-        decl String:netclass[32];
-
-        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFWearable"))
-        {
-            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
-
-            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
-            {
-                for (new i = 0; i < len; i++)
-                {
-                    if (idx == indices[i])
-                    {
-                        TF2_RemoveWearable(client, edict);
-                    }
-                }
-            }
-        }
-    }
-
-    edict = MaxClients + 1;
-
-    while ((edict = FindEntityByClassname2(edict, "tf_powerup_bottle")) != -1)
-    {
-        decl String:netclass[32];
-
-        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFPowerupBottle"))
-        {
-            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
-
-            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
-            {
-                for (new i = 0; i < len; i++)
-                {
-                    if (idx == indices[i])
-                    {
-                        TF2_RemoveWearable(client, edict);
-                        //AcceptEntityInput(edict, "Kill");
-                    }
-                }
-            }
-        }
-    }
-}
-
-stock FindPlayerBack(client, indices[], len)
-{
-    if (len <= 0)
-    {
-        return -1;
-    }
-
-    new edict = MaxClients + 1;
-
-    while ((edict = FindEntityByClassname2(edict, "tf_wearable")) != -1)
-    {
-        decl String:netclass[32];
-
-        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFWearable"))
-        {
-            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
-
-            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
-            {
-                for (new i = 0; i < len; i++)
-                {
-                    if (idx == indices[i])
-                    {
-                        return edict;
-                    }
-                }
-            }
-        }
-    }
-
-    edict = MaxClients + 1;
-
-    while ((edict = FindEntityByClassname2(edict, "tf_powerup_bottle")) != -1)
-    {
-        decl String:netclass[32];
-
-        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFPowerupBottle"))
-        {
-            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
-
-            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
-            {
-                for (new i = 0; i < len; i++)
-                {
-                    if (idx == indices[i])
-                    {
-                        return edict;
-                    }
-                }
-            }
-        }
-    }
-
-    return -1;
 }
 
 public Action:event_destroy(Handle:event, const String:name[], bool:dontBroadcast)
@@ -6248,22 +4662,6 @@ public Action:Command_HaleSetMaxHP(client, args)
     return Plugin_Handled;
 }
 
-stock StopHaleMusic(client)
-{
-    if (!IsValidClient(client))
-    {
-        return;
-    }
-
-    StopSound(client, SNDCHAN_AUTO, HHHTheme);
-    StopSound(client, SNDCHAN_AUTO, CBSTheme);
-    StopSound(client, SNDCHAN_AUTO, NueMusic);
-    StopSound(client, SNDCHAN_AUTO, AstroMusic);
-    StopSound(client, SNDCHAN_AUTO, PortalMusic);
-    StopSound(client, SNDCHAN_AUTO, PortalMusicDuo);
-    StopSound(client, SNDCHAN_AUTO, PortalMusicFinal);
-}
-
 public Action:Command_StopMusic(client, args)
 {
     if (!Enabled2)
@@ -6304,52 +4702,6 @@ public Action:Command_Point_Enable(client, args)
     }
 
     return Plugin_Handled;
-}
-
-stock SetControlPoint(bool:enable)
-{
-    new CPm = -1; //CP = -1;
-
-    while ((CPm = FindEntityByClassname2(CPm, "team_control_point")) != -1)
-    {
-        if (CPm > MaxClients && IsValidEdict(CPm))
-        {
-            AcceptEntityInput(CPm, (enable ? "ShowModel":"HideModel"));
-            SetVariantInt(enable ? 0:1);
-            AcceptEntityInput(CPm, "SetLocked");
-        }
-    }
-
-    g_bIsCapEnabled = enable;
-}
-
-stock SetArenaCapEnableTime(Float:time)
-{
-    new ent = -1;
-    decl String:strTime[32];
-    FloatToString(time, strTime, sizeof(strTime));
-
-    if ((ent = FindEntityByClassname2(-1, "tf_logic_arena")) != -1 && IsValidEdict(ent))
-    {
-        DispatchKeyValue(ent, "CapEnableDelay", strTime);
-    }
-}
-
-stock ForceHale(admin, client, bool:hidden, bool:forever = false)
-{
-    if (forever)
-    {
-        Hale = client;
-    }
-    else
-    {
-        NextHale = client;
-    }
-
-    if (!hidden)
-    {
-        CPrintToChatAllEx(client, "{olive}[VSH] {teamcolor}%N {default}%t", client, "vsh_hale_select_text");
-    }
 }
 
 public OnClientPostAdminCheck(client) // OnClientPutInServer
@@ -6491,23 +4843,6 @@ public OnHookedEvent(Handle:hEvent, const String:strEventName[], bool:bHidden)
 
     SetAirBlastFlag(owner, bBlast);*/
 }
-
-stock GetRJFlag(client)
-    return (0 < client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client) ? g_bClientRJFlag[client] : false);
-
-stock SetRJFlag(client, bool:bState)
-{
-    if (0 < client <= MaxClients)
-        g_bClientRJFlag[client] = bState;
-}
-
-/*stock GetAirBlastFlag(client)
-    return (0 < client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client) ? g_bClientAirBlastFlag[client] : false);
-stock SetAirBlastFlag(client, bool:bState)
-{
-    if (0 < client <= MaxClients)
-        g_bClientAirBlastFlag[client] = bState;
-}*/
 
 public Action:Timer_SetDisconQueuePoints(Handle:timer, Handle:pack)
 {
@@ -6850,31 +5185,6 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
     return Plugin_Continue;
 }*/
-
-stock DoubleJump(const any:client, Float:fl_Boost = 280.0, bool:bTrail = true)
-{
-    decl Float:vVel[3];
-    GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVel);  // get current speeds
-
-    /*new Float:x, Float:y, Float:z;
-    new buttons = GetClientButtons(client);
-    CleanupClientDirection(client, buttons, x, y, z, fl_Boost);
-    vVel[0] = x;
-    vVel[1] = y;
-    vVel[2] = z;*/
-
-    /*buttons &= (IN_FORWARD|IN_BACK|IN_MOVELEFT|IN_MOVERIGHT);
-    if (!((buttons & (IN_FORWARD|IN_BACK|IN_MOVELEFT|IN_MOVERIGHT)) == 0))
-    {
-        new Float:speed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
-        ScaleVector(vVel, speed);
-    }*/
-
-    if (bTrail) CreateTimer(2.0, RemoveEnt, EntIndexToEntRef(AttachParticle(client, "doublejump_trail")));
-
-    vVel[2] = fl_Boost;
-    TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVel);      // boost player
-}
 
 /*doublejump_puff
 doublejump_puff_alt
@@ -7377,37 +5687,6 @@ public OnPreThinkPost(client)
     }
 }
 
-stock bool:IsNearSpencer(client) 
-{ 
-    new bool:dispenserheal, medics = 0; 
-    new healers = GetEntProp(client, Prop_Send, "m_nNumHealers"); 
-    if (healers > 0) 
-    { 
-        for (new i = 1; i <= MaxClients; i++) 
-        { 
-            if (IsValidClient(i) && IsPlayerAlive(i) && GetHealingTarget(i) == client) 
-                medics++; 
-        } 
-    } 
-    dispenserheal = (healers > medics) ? true : false; 
-    return dispenserheal; 
-} 
-
-stock FindSentry(client)
-{
-    new i = -1;
-
-    while ((i = FindEntityByClassname2(i, "obj_sentrygun")) != -1)
-    {
-        if (GetEntPropEnt(i, Prop_Send, "m_hBuilder") == client)
-        {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
 public Action:HaleTimer(Handle:hTimer)
 {
     if (VSHRoundState == 2)
@@ -7823,18 +6102,20 @@ public Action:HaleTimer(Handle:hTimer)
                     case VSHSpecial_Astro:
                         strcopy(s, PLATFORM_MAX_PATH, AstroJump);
                     case VSHSpecial_Nue:
-                        strcopy(s, PLATFORM_MAX_PATH, NueJump[GetRandomInt(0, sizeof(NueJump)-1)]);
+                        Format(s, PLATFORM_MAX_PATH, "%s", Nue_RandomJump());
                     case VSHSpecial_Vagineer:
-                        Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerJump, GetRandomInt(1, 2));
+                        Format(s, PLATFORM_MAX_PATH, "%s", Vagineer_RandomJump());
                     case VSHSpecial_CBS:
                         strcopy(s, PLATFORM_MAX_PATH, CBSJump1);
                     case VSHSpecial_Bunny:
-                        strcopy(s, PLATFORM_MAX_PATH, BunnyJump[GetRandomInt(0, sizeof(BunnyJump)-1)]);
+                        Format(s, PLATFORM_MAX_PATH, "%s", EasterBunny_RandomJump());
                     case VSHSpecial_Hale:
                     {
                         Format(s, PLATFORM_MAX_PATH, "%s%i.wav", GetRandomInt(0, 1) ? HaleJump:HaleJump132, GetRandomInt(1, 2));
                     }
                 }
+
+                LogMessage("Value is: %s", s);
 
                 if (s[0] != '\0')
                 {
@@ -7987,19 +6268,6 @@ public Action:Timer_BotRage(Handle:timer)
     }
 }
 
-stock OnlyScoutsLeft()
-{
-    for (new client = 1; client <= MaxClients; client++)
-    {
-        if (IsValidClient(client) && IsPlayerAlive(client) && client != Hale && TF2_GetPlayerClass(client) != TFClass_Scout)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 public Action:Timer_GravityCat(Handle:timer, any:userid)
 {
     new client = GetClientOfUserId(userid);
@@ -8030,97 +6298,6 @@ public Action:Destroy(client, const String:command[], argc)
     }
 
     return Plugin_Continue;
-}
-
-stock GetIndexOfWeaponSlot(client, slot)
-{
-    new weapon = GetPlayerWeaponSlot(client, slot);
-
-    return (weapon > MaxClients && IsValidEntity(weapon) ? GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex"):-1);
-}
-
-stock IsWeaponSlotActive(iClient, iSlot)
-{
-    new hActive = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
-    new hWeapon = GetPlayerWeaponSlot(iClient, iSlot);
-    return (hWeapon == hActive);
-}
-
-stock IsIndexActive(iClient, Index)
-{
-    new hActive = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
-    new idx = IsValidEntity(hActive) ? GetEntProp(hActive, Prop_Send, "m_iItemDefinitionIndex"):-1;
-
-    return (hActive > MaxClients && Index == idx);
-}
-
-// The amount of health a player will spawn with based on their class and weapons.
-stock GetClientSpawnHealth(client)
-{
-    new HP = 125;
-    new pr = GetIndexOfWeaponSlot(client, TFWeaponSlot_Primary);
-    new se = GetIndexOfWeaponSlot(client, TFWeaponSlot_Secondary);
-    new me = GetIndexOfWeaponSlot(client, TFWeaponSlot_Melee);
-    switch (TF2_GetPlayerClass(client))
-    {
-        case TFClass_Scout:
-        {
-            if (pr == 773) HP += 15; // Pocket Pistol
-            if (me == 44)  HP -= 15; // Sandman
-        }    
-        case TFClass_Soldier:
-        {
-            HP = 200;
-            if (se == 226) HP += 20; // Battalion's Backup
-            if (me == 357) HP += 30; // Half-Zatoichi
-        }
-        case TFClass_Pyro:     return 175;
-        case TFClass_DemoMan:
-        {
-            HP = 175;
-            switch (pr){case 405, 608:            HP += 25;} // Demoboots
-            switch (me){case 132, 266, 482, 1082: HP -= 25;  // Eyelanders
-                        case 327, 404, 357:       HP += 30;} // Claid + Persuader + Half-Zatoichi
-        }
-        case TFClass_Heavy:
-        {
-            HP = 300;
-            if (me == 310) HP -= 20; // Warrior's Spirit
-            if (pr == 850) HP += 100; // Tank Goodness
-        }
-        case TFClass_Engineer:
-        {
-            if (me == 142) HP += 25; // Gunslinger
-        }
-        case TFClass_Medic:    return 150;
-        case TFClass_Sniper:
-        {
-            if (se == 231) HP += 25; // Darwin's Danger Shield
-        }
-        case TFClass_Spy:
-        {
-            if (me == 356) HP -= 60; // Kunai
-            if (me == 461) HP -= 25; // Big Earner
-        }
-    }
-    return HP;
-}
-
-stock GetClassBaseHP(client)
-{
-    switch (TF2_GetPlayerClass(client))
-    {
-        case TFClass_Scout:     return 125;
-        case TFClass_Soldier:   return 200;
-        case TFClass_Pyro:      return 175;
-        case TFClass_DemoMan:   return 175;
-        case TFClass_Heavy:     return 300;
-        case TFClass_Engineer:  return 125;
-        case TFClass_Medic:     return 150;
-        case TFClass_Sniper:    return 125;
-        case TFClass_Spy:       return 125;
-    }
-    return 125;
 }
 
 public TF2_OnConditionAdded(client, TFCond:cond)
@@ -8242,16 +6419,6 @@ public TF2_OnConditionAdded(client, TFCond:cond)
             }
         }
     }
-}
-
-stock GetSpellBook(client)
-{
-    new ent = -1;
-    while((ent = FindEntityByClassname(ent, "tf_weapon_spellbook")) != INVALID_ENT_REFERENCE)
-    {
-        if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client) return ent;
-    }
-    return -1;
 }
 
 public Action:tChocoSteak(Handle:hTimer, any:ref) //|TIMER_REPEAT
@@ -8545,7 +6712,7 @@ public Action:DoTaunt(client, const String:command[], argc)
         {
             case VSHSpecial_Nue:
             {
-                strcopy(s, PLATFORM_MAX_PATH, NueRage[GetRandomInt(1, sizeof(NueRage)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, Nue_RandomRage());
                 EmitSoundToAll(s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, _, pos, NULL_VECTOR, false, 0.0);
 
                 strcopy(s, PLATFORM_MAX_PATH, NueGone);
@@ -8600,7 +6767,7 @@ public Action:DoTaunt(client, const String:command[], argc)
                 if (GetRandomInt(0, 2))
                     strcopy(s, PLATFORM_MAX_PATH, VagineerRageSound);
                 else
-                    Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerRageSound2, GetRandomInt(1, 2));
+                    Format(s, PLATFORM_MAX_PATH, Vagineer_RandomRage());
                 TF2_AddCondition(Hale, TFCond_Ubercharged, 99.0);
                 UberRageCount = 0.0;
 
@@ -8619,7 +6786,7 @@ public Action:DoTaunt(client, const String:command[], argc)
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, BunnyRage[GetRandomInt(1, sizeof(BunnyRage)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomRage());
                 EmitSoundToAll(s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, _, pos, NULL_VECTOR, false, 0.0);
                 TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
                 new weapon = SpawnWeapon(client, "tf_weapon_grenadelauncher", 19, 64, 5, "1 ; 0.6 ; 6 ; 0.1 ; 411 ; 150.0 ; 413 ; 1.0 ; 37 ; 0.0 ; 280 ; 17 ; 477 ; 1.0 ; 467 ; 1.0 ; 181 ; 2.0 ; 252 ; 0.6");
@@ -9046,14 +7213,14 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             }
             case VSHSpecial_Vagineer:
             {
-                Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerFail, GetRandomInt(1, 2));
+                Format(s, PLATFORM_MAX_PATH, Vagineer_RandomFail());
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 //CreateTimer(0.1, Timer_ChangeRagdoll, any:GetEventInt(event, "userid"));
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, BunnyFail[GetRandomInt(0, sizeof(BunnyFail)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomFail());
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 //CreateTimer(0.1, Timer_ChangeRagdoll, any:GetEventInt(event, "userid"));
@@ -9169,7 +7336,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             }
             case VSHSpecial_Bunny:
             {
-                strcopy(s, PLATFORM_MAX_PATH, BunnyKill[GetRandomInt(0, sizeof(BunnyKill)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomKill());
                 EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
             }
@@ -9177,7 +7344,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             {
                 if (!bNueRageActive)
                 {
-                    strcopy(s, PLATFORM_MAX_PATH, NueKill[GetRandomInt(0, sizeof(NueKill)-1)]);
+                    strcopy(s, PLATFORM_MAX_PATH, Nue_RandomKill());
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                 }
@@ -9191,12 +7358,13 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
 
                 if (!bCaveKillVoice && RedAlivePlayers > 2)
                 {
-                    new iVoice = GetRandomInt(0, sizeof(CaveSpree)-1);
-                    strcopy(s, PLATFORM_MAX_PATH, CaveSpree[iVoice]);
+                    //  TODO: Ask why iVoice exists
+                    //  new iVoice = GetRandomInt(0, sizeof(CaveSpree)-1);
+                    strcopy(s, PLATFORM_MAX_PATH, CaveJohnson_RandomSpree());
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     bCaveKillVoice = true;
-                    CaveKillTimer = CreateTimer(iVoice == 1 ? 12.0 : 6.0, EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE);
+                    //  CaveKillTimer = CreateTimer(iVoice == 1 ? 12.0 : 6.0, EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE);
                     //iVoice == 0 ? 5.0 : iVoice == 1 ? 11.0 : ? iVoice == 2 : 2.0 : 3.0
                 }
             }
@@ -9286,7 +7454,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
                     }
                     else
                     {
-                        Format(s, PLATFORM_MAX_PATH, "%s%i.wav", VagineerKSpreeNew, GetRandomInt(1, 5));
+                        Format(s, PLATFORM_MAX_PATH, Vagineer_RandomTaunt());
                     }
                 }
                 case VSHSpecial_HHH:
@@ -9310,7 +7478,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
                 }
                 case VSHSpecial_Bunny:
                 {
-                    strcopy(s, PLATFORM_MAX_PATH, BunnySpree[GetRandomInt(0, sizeof(BunnySpree)-1)]);
+                    strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomSpree());
                 }
             }
 
@@ -9352,79 +7520,6 @@ public Action:EndCaveKillTimer(Handle:hTimer)
     bCaveKillVoice = false;
     CaveKillTimer = INVALID_HANDLE;
     return Plugin_Continue;
-}
-
-stock SpawnManyAmmoPacks(client, String:model[], skin = 0, num = 14, Float:offsz = 30.0)
-{
-    if (hSetAmmoVelocity == INVALID_HANDLE)
-    {
-        return;
-    }
-
-    decl Float:pos[3], Float:vel[3], Float:ang[3];
-
-    ang[0] = 90.0;
-    ang[1] = 0.0;
-    ang[2] = 0.0;
-
-    GetClientAbsOrigin(client, pos);
-
-    pos[2] += offsz;
-
-    for (new i = 0; i < num; i++)
-    {
-        vel[0] = GetRandomFloat(-400.0, 400.0);
-        vel[1] = GetRandomFloat(-400.0, 400.0);
-        vel[2] = GetRandomFloat(300.0, 500.0);
-
-        pos[0] += GetRandomFloat(-5.0, 5.0);
-        pos[1] += GetRandomFloat(-5.0, 5.0);
-
-        new ent = CreateEntityByName("tf_ammo_pack");
-
-        if (!IsValidEntity(ent))
-        {
-            continue;
-        }
-
-        SetEntityModel(ent, model);
-        DispatchKeyValue(ent, "OnPlayerTouch", "!self,Kill,,0,-1"); //for safety, but it shouldn't act like a normal ammopack
-        SetEntProp(ent, Prop_Send, "m_nSkin", skin);
-        SetEntProp(ent, Prop_Send, "m_nSolidType", 6);
-
-        //      SetEntityMoveType(ent, MOVETYPE_FLYGRAVITY);
-        //      SetEntProp(ent, Prop_Send, "movetype", 5);
-        //      SetEntProp(ent, Prop_Send, "movecollide", 0);
-
-        SetEntProp(ent, Prop_Send, "m_usSolidFlags", 152);
-        SetEntProp(ent, Prop_Send, "m_triggerBloat", 24);
-        SetEntProp(ent, Prop_Send, "m_CollisionGroup", 1);
-        SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
-        SetEntProp(ent, Prop_Send, "m_iTeamNum", 2);
-
-        TeleportEntity(ent, pos, ang, vel);
-        DispatchSpawn(ent);
-        TeleportEntity(ent, pos, ang, vel);
-
-        SDKCall(hSetAmmoVelocity, ent, vel);
-
-        SetEntProp(ent, Prop_Data, "m_iHealth", 900);
-
-        new offs = GetEntSendPropOffs(ent, "m_vecInitialVelocity", true);
-
-        SetEntData(ent, offs - 4, 1, _, true);
-        /*      SetEntData(ent, offs-13, 0, 1, true);
-        SetEntData(ent, offs-11, 1, 1, true);
-        SetEntData(ent, offs-15, 1, 1, true);
-        SetEntityMoveType(ent, MOVETYPE_FLYGRAVITY);
-        SetEntProp(ent, Prop_Data, "m_nNextThinkTick", GetEntProp(client, Prop_Send, "m_nTickBase") + 3);
-        SetEntPropVector(ent, Prop_Data, "m_vecAbsVelocity", vel);
-        SetEntPropVector(ent, Prop_Data, "m_vecVelocity", vel);
-        SetEntPropVector(ent, Prop_Send, "m_vecInitialVelocity", vel);
-        SetEntProp(ent, Prop_Send, "m_bClientSideAnimation", 1);
-        PrintToChatAll("aeiou %d %d %d %d %d", GetEntData(ent, offs-16, 1), GetEntData(ent, offs-15, 1), GetEntData(ent, offs-14, 1), GetEntData(ent, offs-13, 1), GetEntData(ent, offs-12, 1));
-        */
-    }
 }
 
 public Action:Timer_Damage(Handle:hTimer, any:id)
@@ -9602,7 +7697,7 @@ public Action:CheckAlivePlayers(Handle:hTimer)
             }
             else if (Special == VSHSpecial_Bunny)
             {
-                strcopy(s, PLATFORM_MAX_PATH, BunnyLast[GetRandomInt(0, sizeof(BunnyLast)-1)]);
+                strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomLast());
             }
             else if (Special == VSHSpecial_Astro)
             {
@@ -10788,7 +8883,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                     }
                     case VSHSpecial_Bunny:
                     {
-                        strcopy(s, PLATFORM_MAX_PATH, BunnyPain[GetRandomInt(0, sizeof(BunnyPain)-1)]);
+                        strcopy(s, PLATFORM_MAX_PATH, EasterBunny_RandomPain());
                         EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                         EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     }
@@ -10903,78 +8998,6 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
     return Plugin_Continue;
 }
 
-/*
- Teleports a client to a random spawn location
-
- iClient - Client to teleport
- iTeam - Team of spawn points to use. If not specified or invalid team number, teleport to ANY spawn point.
-
-*/
-stock TeleportToSpawn(iClient, iTeam = 0)
-{
-    new iEnt;
-    decl Float:vPos[3];
-    decl Float:vAng[3];
-    new Handle:hArray = CreateArray();
-    DOWHILE_ENTFOUND(iEnt, "info_player_teamspawn")
-    {
-        if (iTeam <= 1) // Not RED (2) nor BLu (3)
-        {
-            PushArrayCell(hArray, iEnt);
-        }
-        else
-        {
-            new iSpawnTeam = GetEntProp(iEnt, Prop_Send, "m_iTeamNum");
-            if (iSpawnTeam == iTeam)
-            {
-                PushArrayCell(hArray, iEnt);
-            }
-        }
-    }
-
-    iEnt = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1));
-    CloseHandle(hArray);
-
-    // Technically you'll never find a map without a spawn point.
-    GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", vPos);
-    GetEntPropVector(iEnt, Prop_Send, "m_angRotation", vAng);
-    TeleportEntity(iClient, vPos, vAng, NULL_VECTOR);
-
-    /*if (GetArraySize(hArray) <= 0)
-    {
-        // No iEnt was found. This should be impossible.
-    }
-    else
-    {
-        iEnt = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1))
-    }*/
-}
-
-stock GetClientCloakIndex(client)
-{
-    if (!IsValidClient(client))
-    {
-        return -1;
-    }
-
-    new wep = GetPlayerWeaponSlot(client, 4);
-
-    if (!IsValidEntity(wep))
-    {
-        return -1;
-    }
-
-    new String:classname[64];
-
-    GetEntityClassname(wep, classname, sizeof(classname));
-
-    if (strncmp(classname, "tf_wea", 6, false) != 0)
-    {
-        return -1;
-    }
-
-    return GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
-}
 
 // DistanceAboveGround(): Calculate a player's distance above the ground.
 // Code borrowed from MGE Mod, thanks to Lange!
@@ -11013,54 +9036,6 @@ public bool:TraceEntityFilterPlayer(entity, contentsMask)
     return !Client_IsValid(entity);
 }
 
-stock bool:Client_IsValid(client, bool:checkConnected=true)
-{
-    if (client > 4096) {
-        client = EntRefToEntIndex(client);
-    }
-
-    if (client < 1 || client > MaxClients) {
-        return false;
-    }
-
-    if (checkConnected && !IsClientConnected(client)) {
-        return false;
-    }
-    
-    return true;
-}
-
-stock SpawnSmallHealthPackAt(client, ownerteam = 0)
-{
-    if (!IsValidClient(client) || !IsPlayerAlive(client))
-    {
-        return;
-    }
-
-    new healthpack = CreateEntityByName("item_healthkit_small");
-
-    decl Float:pos[3];
-    GetClientAbsOrigin(client, pos);
-
-    pos[2] += 20.0;
-
-    if (IsValidEntity(healthpack))
-    {
-        DispatchKeyValue(healthpack, "OnPlayerTouch", "!self,Kill,,0,-1");  //for safety, though it normally doesn't respawn
-        DispatchSpawn(healthpack);
-
-        SetEntProp(healthpack, Prop_Send, "m_iTeamNum", ownerteam, 4);
-        SetEntityMoveType(healthpack, MOVETYPE_VPHYSICS);
-
-        new Float:vel[3];
-
-        vel[0] = float(GetRandomInt(-10, 10)), vel[1] = float(GetRandomInt(-10, 10)), vel[2] = 50.0;
-
-        TeleportEntity(healthpack, pos, NULL_VECTOR, vel);
-        //      CreateTimer(17.0, Timer_RemoveCandycaneHealthPack, EntIndexToEntRef(healthpack), TIMER_FLAG_NO_MAPCHANGE);
-    }
-}
-
 /*public Action:Timer_RemoveCandycaneHealthPack(Handle:timer, any:ref)
 {
 new entity = EntRefToEntIndex(ref);
@@ -11083,109 +9058,6 @@ public Action:Timer_StopTickle(Handle:timer, any:userid)
     {
         TF2_RemoveCondition(client, TFCond_Taunting);
     }
-}
-
-stock IncrementHeadCount(client)
-{
-    if (!TF2_IsPlayerInCondition(client, TFCond_DemoBuff))
-    {
-        TF2_AddCondition(client, TFCond_DemoBuff, -1.0);
-    }
-
-    new decapitations = GetEntProp(client, Prop_Send, "m_iDecapitations");
-
-    SetEntProp(client, Prop_Send, "m_iDecapitations", decapitations + 1);
-
-    new health = GetClientHealth(client);
-
-    //  health += (decapitations >= 4 ? 10:15);
-    health += 15;
-
-    SetEntProp(client, Prop_Data, "m_iHealth", health);
-    SetEntProp(client, Prop_Send, "m_iHealth", health);
-
-    TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.01);   //recalc their speed
-}
-
-stock SetDecapitations(client, decaps)
-{
-    SetEntProp(client, Prop_Send, "m_iDecapitations", decaps);
-}
-
-stock SwitchToOtherWeapon(client)
-{
-    new ammo = GetAmmo(client, 0);
-    new weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-    new clip = (IsValidEntity(weapon) ? GetEntProp(weapon, Prop_Send, "m_iClip1"):-1);
-
-    if (!(ammo == 0 && clip <= 0))
-    {
-        SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", weapon);
-    }
-    else
-    {
-        SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary));
-    }
-}
-
-stock RestrictToMelee(iClient) //bool:bSpawnNewMelee = false
-{
-    for (new i = 0; i <= 5; i++)
-    {
-        if (i != TFWeaponSlot_Melee)
-        {
-            TF2_RemoveWeaponSlot2(iClient, i);
-        }
-    }
-
-    SwitchToSlot(iClient, TFWeaponSlot_Melee);
-}
-
-stock SwitchToSlot(iClient, iSlot)
-{
-    new iWeapon = GetPlayerWeaponSlot(iClient, iSlot);
-
-    if (iWeapon > 0)
-    {
-        EquipPlayerWeapon(iClient, iWeapon);
-    }
-}
-
-stock FindTeleOwner(client)
-{
-    if (!IsValidClient(client) || !IsPlayerAlive(client))
-    {
-        return -1;
-    }
-
-    new tele = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
-
-    decl String:classname[32];
-
-    if (IsValidEntity(tele) && GetEdictClassname(tele, classname, sizeof(classname)) && strcmp(classname, "obj_teleporter", false) == 0)
-    {
-        new owner = GetEntPropEnt(tele, Prop_Send, "m_hBuilder");
-        if (IsValidClient(owner))
-        {
-            return owner;
-        }
-    }
-
-    return -1;
-}
-
-stock TF2_IsPlayerCritBuffed(client)
-{
-    return (TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged)
-        || TF2_IsPlayerInCondition(client, TFCond_HalloweenCritCandy)
-        || TF2_IsPlayerInCondition(client, TFCond:34)
-        || TF2_IsPlayerInCondition(client, TFCond:35)
-        || TF2_IsPlayerInCondition(client, TFCond_CritOnFirstBlood)
-        || TF2_IsPlayerInCondition(client, TFCond_CritOnWin)
-        || TF2_IsPlayerInCondition(client, TFCond_CritOnFlagCapture)
-        || TF2_IsPlayerInCondition(client, TFCond_CritOnKill)
-        || TF2_IsPlayerInCondition(client, TFCond_CritMmmph)
-        );
 }
 
 /*public Action:Timer_DisguiseBackstab(Handle:timer, any:userid)
@@ -11270,61 +9142,6 @@ public Action:Timer_NueDisguiseBackstab(Handle:timer, any:userid)
         }
     }
 }*/
-
-stock DisguiseNue(client)
-{
-    if (IsValidClient(client) && IsPlayerAlive(client))
-    {
-        new disguisetarget = -1;
-
-        do
-        {
-            disguisetarget = GetRandomInt(1, MaxClients);
-        }
-        while ((RedAlivePlayers > 0) && (!IsValidClient(disguisetarget) || (disguisetarget == client)));
-
-        if (!IsValidClient(disguisetarget))
-        {
-            disguisetarget = client;
-        }
-
-        new team = GetClientTeam(client) == 2 ? 3 : 2;
-
-        new TFClassType:class = TF2_GetPlayerClass(disguisetarget);
-
-        TF2_DisguisePlayer(client, TFTeam:team, class, disguisetarget);
-
-        /*new disguisetarget = -1;
-        new team = GetClientTeam(client);
-        new Handle:hArray = CreateArray();
-
-        for (new clientcheck = 0; clientcheck <= MaxClients; clientcheck++)
-        {
-            if (IsValidClient(clientcheck) && GetClientTeam(clientcheck) != team && clientcheck != client)
-            {
-                PushArrayCell(hArray, clientcheck);
-            }
-        }
-
-        if (GetArraySize(hArray) <= 0)
-        {
-            disguisetarget = client;
-        }
-        else
-        {
-            disguisetarget = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1));
-        }
-
-        if (!IsValidClient(disguisetarget))
-        {
-            disguisetarget = client;
-        }
-
-        team = GetClientTeam(disguisetarget);*/
-
-        //CloseHandle(hArray);
-    }
-}
 
 public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &bool:result)
 {
@@ -11471,192 +9288,9 @@ public Action:Timer_NoAttacking(Handle:timer, any:ref)
 
     SetNextAttack(weapon, 1.56);
 }
-
-stock SetNextAttack(weapon, Float:duration = 0.0)
-{
-    if (weapon <= MaxClients || !IsValidEntity(weapon)) return;
-
-    new Float:next = GetGameTime() + duration;
-
-    SetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack", next);
-    SetEntPropFloat(weapon, Prop_Send, "m_flNextSecondaryAttack", next);
-}
-
 public bool:TraceRayDontHitSelf(entity, mask, any:data)
 {
     return (entity != data);
-}
-
-stock FindNextHale(bool:array[])
-{
-    new tBoss = -1;
-    new tBossPoints = -1073741824;
-    new bool:spec = GetConVarBool(cvarForceSpecToHale);
-
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || (spec && GetClientTeam(i) != _:TFTeam_Unassigned)))   // GetClientTeam(i) != _:TFTeam_Unassigned)
-        {
-            new points = GetClientQueuePoints(i);
-
-            if (points >= tBossPoints && !array[i] && !CheckHaleToggle(i))
-            {
-                tBoss = i;
-                tBossPoints = points;
-            }
-        }
-    }
-    return tBoss;
-}
-
-stock bool:NextHaleTogglers(bool:array[])
-{
-    new togs = 0;
-    new Players = 0;
-    new bool:spec = GetConVarBool(cvarForceSpecToHale);
-
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || (spec && GetClientTeam(i) != _:TFTeam_Unassigned)) && !array[i])
-        {
-            Players++;
-
-            if (CheckHaleToggle(i))
-            {
-                togs++;
-            }
-        }
-    }
-
-    if (Players <= 1) //If there's only one player, we need more players anyway so disable this.
-        return false;
-
-    if (togs == Players)    //If everyone disabled queue points...
-    {
-        return true;    //Everyone doesn't want to be Hale
-    }
-    else
-        return false;
-}
-
-stock RandomNextHale(bool:array[], bool:disconnect=true)
-{
-    if (!disconnect) CPrintToChatAll("{olive}[VSH]{default} Noone wants to be Hale, choosing one randomly!");
-
-    new tBoss = -1;
-    new bool:spec = GetConVarBool(cvarForceSpecToHale);
-
-    do  //Choose a random Hale
-    {
-        tBoss = GetRandomInt(1, MaxClients);
-    }
-    while (!IsValidClient(tBoss) || array[tBoss] || Hale == tBoss || !(GetClientTeam(tBoss) > _:TFTeam_Spectator || (spec && GetClientTeam(tBoss) != _:TFTeam_Unassigned)));
-
-    return tBoss;
-}
-
-stock FindNextHaleEx()
-{
-    new bool:added[MAXPLAYERS + 1];
-
-    if (Hale >= 0)
-    {
-        added[Hale] = true;
-    }
-
-    return FindNextHale(added);
-}
-
-stock ForceTeamWin(team)
-{
-    new ent = FindEntityByClassname2(-1, "team_control_point_master");
-
-    if (ent == -1)
-    {
-        ent = CreateEntityByName("team_control_point_master");
-        DispatchSpawn(ent);
-        AcceptEntityInput(ent, "Enable");
-    }
-
-    SetVariantInt(team);
-    AcceptEntityInput(ent, "SetWinner");
-}
-
-stock AttachParticle(ent, String:particleType[], Float:offset = 0.0, bool:battach = true)
-{
-    new particle = CreateEntityByName("info_particle_system");
-
-    decl String:tName[128];
-    decl Float:pos[3];
-
-    GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-
-    pos[2] += offset;
-
-    TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
-
-    Format(tName, sizeof(tName), "target%i", ent);
-
-    DispatchKeyValue(ent, "targetname", tName);
-    DispatchKeyValue(particle, "targetname", "tf2particle");
-    DispatchKeyValue(particle, "parentname", tName);
-    DispatchKeyValue(particle, "effect_name", particleType);
-    DispatchSpawn(particle);
-
-    SetVariantString(tName);
-
-    if (battach)
-    {
-        AcceptEntityInput(particle, "SetParent", particle, particle, 0);
-        SetEntPropEnt(particle, Prop_Send, "m_hOwnerEntity", ent);
-    }
-
-    ActivateEntity(particle);
-    AcceptEntityInput(particle, "start");
-
-    return particle;
-}
-
-stock SpawnWeapon(client, String:name[], index, level, qual, String:att[])
-{
-    new Handle:hWeapon = TF2Items_CreateItem(OVERRIDE_ALL | FORCE_GENERATION);
-
-    if (hWeapon == INVALID_HANDLE)
-    {
-        return -1;
-    }
-
-    TF2Items_SetClassname(hWeapon, name);
-    TF2Items_SetItemIndex(hWeapon, index);
-    TF2Items_SetLevel(hWeapon, level);
-    TF2Items_SetQuality(hWeapon, qual);
-
-    new String:atts[32][32];
-    new count = ExplodeString(att, " ; ", atts, 32, 32);
-
-    if (count > 0)
-    {
-        TF2Items_SetNumAttributes(hWeapon, count / 2);
-
-        new i2 = 0;
-
-        for (new i = 0; i < count; i += 2)
-        {
-            TF2Items_SetAttribute(hWeapon, i2, StringToInt(atts[i]), StringToFloat(atts[i + 1]));
-            i2++;
-        }
-    }
-    else
-    {
-        TF2Items_SetNumAttributes(hWeapon, 0);
-    }
-
-    new entity = TF2Items_GiveNamedItem(client, hWeapon);
-
-    CloseHandle(hWeapon);
-    EquipPlayerWeapon(client, entity);
-
-    return entity;
 }
 
 public HintPanelH(Handle:menu, MenuAction:action, param1, param2)
@@ -12074,32 +9708,6 @@ SetClientDifficulty(client, mode)
     SetClientCookie(client, ModeCookie, cky);
 }
 
-stock CheckClientDifficulty(client)
-{
-    if (!IsValidClient(client))
-    {
-        return mode_normal;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return mode_normal;
-    }
-
-    decl String:cky[5];
-
-    GetClientCookie(client, ModeCookie, cky, sizeof(cky));
-
-    if (cky[0] == 0)
-    {
-        return mode_normal;   //If the cookie doesn't exist yet, normal mode by default
-    }
-    else
-    {
-        return StringToInt(cky);
-    }
-}
-
 public Action:NeverHaleMe(client, args)
 {
     if (!Enabled2 || !IsValidClient(client))
@@ -12184,32 +9792,6 @@ SetClientHaleToggle(client, bool:on)
     }
 
     SetClientCookie(client, ToggleCookie, strCookie);
-}
-
-stock bool:CheckHaleToggle(client)  //If true, client cannot become Hale
-{
-    if (!IsValidClient(client))
-    {
-        return true;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return false;
-    }
-
-    decl String:strCookie[32];
-
-    GetClientCookie(client, ToggleCookie, strCookie, sizeof(strCookie));
-
-    if (strCookie[0] == 0)
-    {
-        return false;   //If the cookie doesn't exist yet, they can still become Hale
-    }
-    else
-    {
-        return bool:StringToInt(strCookie);
-    }
 }
 
 bool:GetClientClasshelpinfoCookie(client)
@@ -12491,6 +10073,2634 @@ public Action:NewPanel(client, versionindex)
     CloseHandle(panel);
 
     return Plugin_Continue;
+}
+
+
+public HelpPanelH(Handle:menu, MenuAction:action, param1, param2)
+{
+    if (action == MenuAction_Select)
+    {
+        return;
+    }
+}
+
+public Action:HelpPanelCmd(client, args)
+{
+    if (!IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    HelpPanel(client);
+
+    return Plugin_Handled;
+}
+
+public Action:HelpPanel(client)
+{
+    if (!Enabled2 || IsVoteInProgress())
+    {
+        return Plugin_Continue;
+    }
+
+    new Handle:panel = CreatePanel();
+
+    decl String:s[512];
+
+    SetGlobalTransTarget(client);
+
+    Format(s, 512, "%t", "vsh_help_mode");
+    DrawPanelItem(panel, s);
+
+    Format(s, 512, "%t", "vsh_menu_exit");
+    DrawPanelItem(panel, s);
+
+    SendPanelToClient(panel, client, HelpPanelH, 9001);
+
+    CloseHandle(panel);
+
+    return Plugin_Continue;
+}
+
+public Action:HelpPanel2Cmd(client, args)
+{
+    if (!IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    if (client == Hale)
+    {
+        HintPanel(Hale);
+    }
+    else
+    {
+        HelpPanel2(client);
+    }
+    
+    return Plugin_Handled;
+}
+
+public Action:HelpPanel2(client)
+{
+    if (!Enabled2 || IsVoteInProgress())
+    {
+        return Plugin_Continue;
+    }
+
+    decl String:s[512];
+
+    new TFClassType:class = TF2_GetPlayerClass(client);
+
+    SetGlobalTransTarget(client);
+
+    switch (class)
+    {
+        case TFClass_Scout:
+            Format(s, 512, "%t", "vsh_help_scout");
+        case TFClass_Soldier:
+            Format(s, 512, "%t", "vsh_help_soldier");
+        case TFClass_Pyro:
+            Format(s, 512, "%t", "vsh_help_pyro");
+        case TFClass_DemoMan:
+            Format(s, 512, "%t", "vsh_help_demo");
+        case TFClass_Heavy:
+            Format(s, 512, "%t", "vsh_help_heavy");
+        case TFClass_Engineer:
+            Format(s, 512, "%t", "vsh_help_eggineer");
+        case TFClass_Medic:
+            Format(s, 512, "%t", "vsh_help_medic");
+        case TFClass_Sniper:
+            Format(s, 512, "%t", "vsh_help_sniper");
+        case TFClass_Spy:
+            Format(s, 512, "%t", "vsh_help_spie");
+        default:
+            Format(s, 512, "");
+    }
+
+    new Handle:panel = CreatePanel();
+
+    if (class != TFClass_Sniper)
+    {
+        Format(s, 512, "%t\n%s", "vsh_help_melee", s);
+    }
+
+    SetPanelTitle(panel, s);
+    DrawPanelItem(panel, "Exit");
+
+    SendPanelToClient(panel, client, HintPanelH, 12);
+
+    CloseHandle(panel);
+
+    return Plugin_Continue;
+}
+
+public Action:ClasshelpinfoCmd(client, args)
+{
+    if (!IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    ClasshelpinfoSetting(client);
+
+    return Plugin_Handled;
+}
+
+public Action:ClasshelpinfoSetting(client)
+{
+    if (!Enabled2)
+    {
+        return Plugin_Continue;
+    }
+
+    new Handle:panel = CreatePanel();
+
+    SetPanelTitle(panel, "Turn the Versus Saxton Hale class info...");
+
+    DrawPanelItem(panel, "On");
+    DrawPanelItem(panel, "Off");
+
+    SendPanelToClient(panel, client, ClasshelpinfoTogglePanelH, 9001);
+
+    CloseHandle(panel);
+
+    return Plugin_Handled;
+}
+
+public ClasshelpinfoTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
+{
+    if (IsValidClient(param1))
+    {
+        if (action == MenuAction_Select)
+        {
+            if (param2 == 2)
+            {
+                SetClientCookie(param1, ClasshelpinfoCookie, "0");
+            }
+            else
+            {
+                SetClientCookie(param1, ClasshelpinfoCookie, "1");
+            }
+
+            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_classinfo", param2 == 2 ? "off":"on");
+        }
+    }
+}
+
+/*public HelpPanelH1(Handle:menu, MenuAction:action, param1, param2)
+{
+if (action == MenuAction_Select)
+{
+if (param2 == 1)
+HelpPanel(param1);
+else if (param2 == 2)
+return;
+}
+}
+public Action:HelpPanel1(client, Args)
+{
+if (!Enabled2)
+return Plugin_Continue;
+new Handle:panel = CreatePanel();
+SetPanelTitle(panel, "Hale is unusually strong.\nBut he doesn't use weapons, because\nhe believes that problems should be\nsolved with bare hands.");
+DrawPanelItem(panel, "Back");
+DrawPanelItem(panel, "Exit");
+SendPanelToClient(panel, client, HelpPanelH1, 9001);
+CloseHandle(panel);
+return Plugin_Continue;
+}*/
+
+public Action:MusicTogglePanelCmd(client, args)
+{
+    if (!IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    MusicTogglePanel(client);
+
+    return Plugin_Handled;
+}
+
+public Action:MusicTogglePanel(client)
+{
+    if (!Enabled2 || !IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    new Handle:panel = CreatePanel();
+
+    SetPanelTitle(panel, "Turn the VS Saxton Hale music...");
+
+    DrawPanelItem(panel, "On");
+    DrawPanelItem(panel, "Off");
+
+    SendPanelToClient(panel, client, MusicTogglePanelH, 9001);
+
+    CloseHandle(panel);
+
+    return Plugin_Continue;
+}
+
+public MusicTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
+{
+    if (IsValidClient(param1))
+    {
+        if (action == MenuAction_Select)
+        {
+            if (param2 == 2)
+            {
+                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, false);
+                StopHaleMusic(param1);
+            }
+            else
+            {
+                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, true);
+            }
+
+            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_music", param2 == 2 ? "off":"on");
+        }
+    }
+}
+
+public Action:VoiceTogglePanelCmd(client, args)
+{
+    if (!IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    VoiceTogglePanel(client);
+
+    return Plugin_Handled;
+}
+
+public Action:VoiceTogglePanel(client)
+{
+    if (!Enabled2 || !IsValidClient(client))
+    {
+        return Plugin_Continue;
+    }
+
+    new Handle:panel = CreatePanel();
+
+    SetPanelTitle(panel, "Turn the VS Saxton Hale voices...");
+
+    DrawPanelItem(panel, "On");
+    DrawPanelItem(panel, "Off");
+
+    SendPanelToClient(panel, client, VoiceTogglePanelH, 9001);
+
+    CloseHandle(panel);
+
+    return Plugin_Continue;
+}
+
+public VoiceTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
+{
+    if (IsValidClient(param1))
+    {
+        if (action == MenuAction_Select)
+        {
+            if (param2 == 2)
+            {
+                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, false);
+            }
+            else
+            {
+                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, true);
+            }
+
+            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_voice", param2 == 2 ? "off":"on");
+
+            if (param2 == 2)
+            {
+                CPrintToChat(param1, "%t", "vsh_voice2");
+            }
+        }
+    }
+}
+
+public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PATH], &entity, &channel, &Float:volume, &level, &pitch, &flags)
+{
+    /*if (Enabled && StrContains(sample, "spy_uncloak", false) != -1)
+    {
+        CPrintToChdata("%s vol: %f", sample, volume);
+        if (IsValidClient(entity))
+        {
+            CPrintToChdata("%N cloak sound", entity);
+        }
+        else
+        {
+            CPrintToChdata("%i ent sound", entity);
+        }
+        strcopy(sample, PLATFORM_MAX_PATH, NueGone);
+        return Plugin_Changed;
+    }*/
+
+    if (!Enabled || ((entity != Hale) && ((entity <= 0) || !IsValidClient(Hale) || (entity != GetPlayerWeaponSlot(Hale, 0)))))
+    {
+        return Plugin_Continue;
+    }
+
+    /*if (bLemonRageActivated && StrContains(sample, "grenade_launcher_shoot", false) != -1)
+    {
+        ReplaceString(sample, PLATFORM_MAX_PATH, "grenade_launcher_shoot", "rocket_shoot", false);
+        return Plugin_Changed;
+    }*/
+
+    if (StrContains(sample, "saxton_hale", false) != -1)
+    {
+        return Plugin_Continue;
+    }
+
+    //Block out the engineer start battlecry
+    if (Special == VSHSpecial_Astro && StrContains(sample, "battlecry", false) != -1)
+    {
+        return Plugin_Handled;
+    }
+
+    if (strcmp(sample, "vo/engineer_LaughLong01.wav", false) == 0)
+    {
+        if (Special != VSHSpecial_Astro)
+        {
+            strcopy(sample, PLATFORM_MAX_PATH, VagineerKSpree);
+
+            return Plugin_Changed;
+        }
+        
+        return Plugin_Handled;
+    }
+
+    if (entity == Hale && Special == VSHSpecial_HHH && strncmp(sample, "vo", 2, false) == 0 && StrContains(sample, "halloween_boss") == -1)
+    {
+        if (GetRandomInt(0, 100) <= 10)
+        {
+            Format(sample, PLATFORM_MAX_PATH, "%s0%i.wav", HHHLaught, GetRandomInt(1, 4));
+
+            return Plugin_Changed;
+        }
+    }
+
+    if (Special != VSHSpecial_CBS && !strncmp(sample, "vo", 2, false) && StrContains(sample, "halloween_boss") == -1)
+    {
+        if (Special == VSHSpecial_Vagineer)
+        {
+            if (StrContains(sample, "engineer_moveup", false) != -1)
+            {
+                Format(sample, PLATFORM_MAX_PATH, Vagineer_RandomJump());
+            }
+            else if (StrContains(sample, "engineer_no", false) != -1 || GetRandomInt(0, 9) > 6)
+            {
+                strcopy(sample, PLATFORM_MAX_PATH, "vo/engineer_no01.wav");
+            }
+            else
+            {
+                strcopy(sample, PLATFORM_MAX_PATH, "vo/engineer_jeers02.wav");
+            }
+
+            return Plugin_Changed;
+        }
+
+        if (Special == VSHSpecial_Astro)
+        {
+            strcopy(sample, PLATFORM_MAX_PATH, Astronaut_RandomSound());
+            return Plugin_Changed;
+        }
+
+        if (Special == VSHSpecial_Bunny)
+        {
+            if (StrContains(sample, "gibberish", false) == -1 && StrContains(sample, "burp", false) == -1 && !GetRandomInt(0, 2))
+            {
+                //Do sound things
+                strcopy(sample, PLATFORM_MAX_PATH, EasterBunny_RandomVoice());
+
+                return Plugin_Changed;
+            }
+
+            return Plugin_Continue;
+        }
+
+        if (Special == VSHSpecial_Nue && bNueRageActive)
+        {
+            return Plugin_Continue;
+        }
+
+        return Plugin_Handled;
+    }
+
+    return Plugin_Continue;
+}
+
+public OnEntityCreated(entity, const String:classname[])
+{
+    if (StrEqual(classname, "item_healthkit_medium"))
+    {
+        //SDKHook(entity, SDKHook_StartTouch, TouchinSandvich);
+        SDKHook(entity, SDKHook_SpawnPost, OnFoodSpawned);
+        CPrintToChdata("sandvich thrown %i", entity);
+    }
+
+    if (Enabled && StrEqual(classname, "tf_projectile_pipe", false) || StrEqual(classname, "tf_projectile_rocket", false))
+    {
+        SDKHook(entity, SDKHook_SpawnPost, OnEggBombSpawned);
+
+        if (Special == VSHSpecial_Cave)
+        {
+            SDKHook(entity, SDKHook_StartTouch, OnLemonTouch);
+        }
+    }
+}
+
+public OnFoodSpawned(iSandvich)
+{
+    new iOwner = GetEntPropEnt(iSandvich, Prop_Data, "m_hOwnerEntity");
+
+    if (iOwner != -1 && iOwner <= MaxClients && IsClientInGame(iOwner) && TF2_GetPlayerClass(iOwner) == TFClass_Heavy)
+    {
+        //SetEntProp(iSandvich, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+    
+        new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
+
+        switch (idx)
+        {
+            case 42, 863, 1002: // Only steak, chocobar, and fishcake
+            {
+                return;
+            }
+        }
+
+        /*if (idx == 311) // Set the correct model
+        {
+            CPrintToChdata("attempt steak");
+            DispatchKeyValue(iSandvich, "powerup_model", "models/items/plate_steak.mdl");
+            return;
+        }*/
+
+        CreateTimer(0.0, tSetHeavyFooBar, EntIndexToEntRef(iSandvich), TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+public Action:tSetHeavyFooBar(Handle:timer, any:ref)
+{
+    new entity = EntRefToEntIndex(ref);
+
+    CPrintToChdata("attempt remodel %i", entity);
+
+    new iOwner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
+
+    // Fix spellbook thing
+    SetEntPropEnt(iOwner, Prop_Send, "m_hActiveWeapon", GetPlayerWeaponSlot(iOwner, TFWeaponSlot_Melee));
+
+    new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
+
+    decl String:s[PLATFORM_MAX_PATH];
+
+    strcopy(s, PLATFORM_MAX_PATH, 
+        (idx == 159) ? "models/weapons/c_models/c_chocolate/c_chocolate.mdl" : 
+        (idx == 433) ? "models/weapons/c_models/c_fishcake/c_fishcake.mdl" :
+                       "models/items/plate_steak.mdl"
+    );
+
+    if (IsModelPrecached(s) && IsValidEntity(entity))
+    {
+        CPrintToChdata("attempt choco");
+        new att = AttachProjectileModel(entity, s, "idle");
+
+        SetEntProp(att, Prop_Send, "m_nSkin", GetClientTeam(iOwner)-2);
+        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
+        SetEntityRenderColor(entity, 255, 255, 255, 0);
+    }
+}
+
+/*public TouchinSandvich(iHookedEnt, iTouchingEnt)
+{
+    new iOwner = GetEntPropEnt(iHookedEnt, Prop_Data, "m_hOwnerEntity");
+    if(iOwner > 0 && iOwner <= MaxClients && IsClientInGame(iOwner) && TF2_GetPlayerClass(iOwner) == TFClass_Heavy && iOwner == iTouchingEnt)
+    {
+        //Owner is a valid client, so it's not some map spawn.  Now is it a dropped sandvich?
+        // I'd much rather validate this by model, but since that doesnt seem to work for shit (the model returns as the medpack model)
+        // Soooo we'll just see if the client is a heavy
+        // We'll also check if the owner is the player touching it - if it's another player, we dont need to do shit.
+        new newSandvich = CreateEntityByName("item_healthkit_medium");
+
+        if (IsValidEntity(newSandvich))
+        {
+            SetEntProp(iHookedEnt, Prop_Data, "m_bDisabled", 1);    // disable it so it cant get picked up before we kill it
+
+            new Float:pos[3];
+            GetEntPropVector(iHookedEnt, Prop_Send, "m_vecOrigin", pos);    //Grab the location
+            AcceptEntityInput(iHookedEnt, "Kill");  // Kill the old one
+            //new owner = GetEntPropEnt(oldSandvich, Prop_Data, "m_hOwnerEntity");  //Owner
+            //SetEntPropEnt(newSandvich, Prop_Data, "m_hOwnerEntity", owner);   //Set the owner //if we set the owner as the heavy, TF2 does the ammo action crap
+
+            new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
+
+            decl String:s[PLATFORM_MAX_PATH];
+
+            strcopy(s, PLATFORM_MAX_PATH,
+                (idx == 42)     ? "models/items/plate.mdl" :
+                (idx == 863)    ? "models/items/plate_robo_sandwich.mdl" :
+                (idx == 1002)   ? "models/items/plate_sandwich_xmas.mdl" :
+                (idx == 311)    ? "models/items/plate_steak.mdl" :
+                (idx == 159)    ? "models/weapons/c_models/c_chocolate/c_chocolate.mdl" :
+                                  "models/weapons/c_models/c_fishcake/c_fishcake.mdl"
+            );
+
+            DispatchKeyValue(newSandvich, "powerup_model", s);  // Set the correct model
+            DispatchSpawn(newSandvich); // Spawn the new one
+
+            TeleportEntity(newSandvich, pos, NULL_VECTOR, NULL_VECTOR); // teleport to old one's location
+            CreateTimer(30.0, KillSandvich, newSandvich);
+            g_LastSandvich[iOwner] = newSandvich;
+        }
+    }
+}
+
+public Action:KillSandvich(Handle:hTimer, any:iSandvich)
+{
+    if(IsValidEntity(iSandvich))
+        AcceptEntityInput(iSandvich, "Kill");
+    return Plugin_Continue;
+}  */
+
+public Action:OnLemonTouch(entity, other)
+{
+    // Only continue if the touched prop is a live demonman
+    if (Special != VSHSpecial_Cave || other < 1 || other > MaxClients || !IsClientInGame(other) || !IsPlayerAlive(other) || TF2_GetPlayerClass(other) != TFClass_DemoMan || IsMediUber(other) || GetClientTeam(other) == HaleTeam)
+    {
+        return Plugin_Continue;
+    }
+
+    // This is to detect direct shots VS demomens
+    // So we can break their shields
+
+    new owner;
+
+    decl String:proj[48];
+    GetEdictClassname(entity, proj, sizeof(proj));
+
+    switch (proj[14])
+    {
+        case 'r', 'e': // Rockets
+        {
+            owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+        }
+        case 'p': // Nades
+        {
+            if (proj[18] == 0)
+            {
+                owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+            }
+            else 
+                return Plugin_Continue;
+        }
+    }
+
+    // //Only continue if the attacking prop owner is Cave Johnson
+    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner) || !IsPlayerAlive(owner) || owner != Hale)
+    {
+        return Plugin_Continue;
+    }
+
+    if (owner != other)
+    {
+        Direct[other] = true;   // Only counting direct shots between Hale and a victim
+        DirectTime[other] = GetGameTime();
+    }
+
+    /*
+    Fix idea:
+    Use ontouch. Only first touch will count. Otherwise it's set to not work.
+
+    */
+
+    return Plugin_Continue;
+}
+
+public OnEggBombSpawned(entity)
+{
+    new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+
+    if (IsValidClient(owner) && owner == Hale)
+    {
+        if (Special == VSHSpecial_Bunny)
+            CreateTimer(0.0, Timer_SetEggBomb, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
+        else if (Special == VSHSpecial_Cave)
+            CreateTimer(0.0, Timer_SetLemon, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+public Action:Timer_SetEggBomb(Handle:timer, any:ref)
+{
+    new entity = EntRefToEntIndex(ref);
+
+    if (FileExists(EggModel) && IsModelPrecached(EggModel) && IsValidEntity(entity))
+    {
+        new att = AttachProjectileModel(entity, EggModel);
+
+        SetEntProp(att, Prop_Send, "m_nSkin", 0);
+        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
+        SetEntityRenderColor(entity, 255, 255, 255, 0);
+    }
+}
+
+public Action:Timer_SetLemon(Handle:timer, any:ref)
+{
+    new entity = EntRefToEntIndex(ref);
+
+    if (FileExists(LemonModel) && IsModelPrecached(LemonModel) && IsValidEntity(entity))
+    {
+        new att = AttachProjectileModel(entity, LemonModel);
+
+        SetEntProp(att, Prop_Send, "m_nSkin", 0);
+        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
+        SetEntityRenderColor(entity, 255, 255, 255, 0);
+    }
+}
+
+public Action:Hook_CommandSay(client, const String:command[], argc)
+{
+    if (!Enabled) return Plugin_Continue;
+    
+    if (VSHRoundState == 1 && Special == VSHSpecial_Guard && client != Hale)
+    {
+        return Plugin_Handled;
+    }
+    
+    return Plugin_Continue;
+}
+
+public Native_IsVSHMap(Handle:plugin, numParams)
+{
+    return IsSaxtonHaleMap();
+}
+
+public Native_IsEnabled(Handle:plugin, numParams)
+{
+    return Enabled;
+}
+
+public Native_GetHale(Handle:plugin, numParams)
+{
+    return IsValidClient(Hale) ? GetClientUserId(Hale) : -1;
+}
+
+public Native_IsNueRaging(Handle:plugin, numParams)
+{
+    return bNueRageActive;
+}
+
+public Native_IsCapEnabled(Handle:plugin, numParams)
+{
+    if (VSHRoundState != 1)
+    {
+        return false;
+    }
+
+    return g_bIsCapEnabled;
+}
+
+public Native_GetTeam(Handle:plugin, numParams)
+{
+    return HaleTeam;
+}
+
+public Native_GetSpecial(Handle:plugin, numParams)
+{
+    return Special;
+}
+
+public Native_GetHealth(Handle:plugin, numParams)
+{
+    return HaleHealth;
+}
+
+public Native_GetHealthMax(Handle:plugin, numParams)
+{
+    return HaleHealthMax;
+}
+
+public Native_GetRoundState(Handle:plugin, numParams)
+{
+    return VSHRoundState;
+}
+
+public Native_GetDamage(Handle:plugin, numParams)
+{
+    new iClient = GetNativeCell(1);
+
+    return IsValidClient(iClient) ? Damage[iClient] : 0;
+}
+
+
+
+
+// ********************************************************
+//
+//              Beginning of stock functions
+//
+// ********************************************************
+
+#define MAX_STEAMAUTH_LENGTH 21
+#define STEAMID_CHDATA "STEAM_0:1:41644167"
+
+stock bool:IsSaxtonHaleMap(bool:forceRecalc = false)
+{
+    static bool:found = false;
+    static bool:isVSHMap = false;
+
+    if (forceRecalc)
+    {
+        isVSHMap = false;
+        found = false;
+    }
+
+    if (!found)
+    {
+        decl String:s[PLATFORM_MAX_PATH];
+        GetCurrentMap(currentmap, sizeof(currentmap));
+
+        if (FileExists("bNextMapToHale"))
+        {
+            isVSHMap = true;
+            found = true;
+            return true;
+        }
+
+        BuildPath(Path_SM, s, PLATFORM_MAX_PATH, "configs/saxton_hale/saxton_hale_maps.cfg");
+
+        if (!FileExists(s))
+        {
+            LogError("[VSH] Unable to find %s, disabling plugin.", s);
+            isVSHMap = false;
+            found = true;
+            return false;
+        }
+
+        new Handle:fileh = OpenFile(s, "r");
+
+        if (fileh == INVALID_HANDLE)
+        {
+            LogError("[VSH] Error reading maps from %s, disabling plugin.", s);
+            isVSHMap = false;
+            found = true;
+            return false;
+        }
+
+        new pingas = 0;
+
+        while (!IsEndOfFile(fileh) && ReadFileLine(fileh, s, sizeof(s)) && (pingas < 100))
+        {
+            pingas++;
+            if (pingas == 100)
+                LogError("[VS Saxton Hale] Breaking infinite loop when trying to check the map.");
+            Format(s, strlen(s) - 1, s);
+            if (strncmp(s, "//", 2, false) == 0) continue;
+            if ((StrContains(currentmap, s, false) != -1) || (StrContains(s, "all", false) == 0))
+            {
+                CloseHandle(fileh);
+                isVSHMap = true;
+                found = true;
+                return true;
+            }
+        }
+
+        CloseHandle(fileh);
+    }
+
+    return isVSHMap;
+}
+
+stock bool:MapHasMusic(bool:forceRecalc = false)
+{
+    static bool:hasMusic;
+    static bool:found = false;
+
+    if (forceRecalc)
+    {
+        found = false;
+        hasMusic = false;
+    }
+
+    if (!found)
+    {
+        new i = -1;
+        decl String:name[64];
+
+        while ((i = FindEntityByClassname2(i, "info_target")) != -1)
+        {
+            GetEntPropString(i, Prop_Data, "m_iName", name, sizeof(name));
+            if (strcmp(name, "hale_no_music", false) == 0) hasMusic = true;
+        }
+        found = true;
+    }
+
+    return hasMusic;
+}
+
+stock bool:CheckToChangeMapDoors()
+{
+    decl String:s[PLATFORM_MAX_PATH];
+    GetCurrentMap(currentmap, sizeof(currentmap));
+    checkdoors = false;
+
+    BuildPath(Path_SM, s, PLATFORM_MAX_PATH, "configs/saxton_hale/saxton_hale_doors.cfg");
+
+    if (!FileExists(s))
+    {
+        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
+        {
+            checkdoors = true;
+        }
+        return;
+    }
+
+    new Handle:fileh = OpenFile(s, "r");
+
+    if (fileh == INVALID_HANDLE)
+    {
+        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
+        {
+            checkdoors = true;
+        }
+        return;
+    }
+
+    while (!IsEndOfFile(fileh) && ReadFileLine(fileh, s, sizeof(s)))
+    {
+        Format(s, strlen(s) - 1, s);
+        if (strncmp(s, "//", 2, false) == 0)
+        {
+            continue;
+        }
+
+        if (StrContains(currentmap, s, false) != -1 || StrContains(s, "all", false) == 0)
+        {
+            CloseHandle(fileh);
+            checkdoors = true;
+            return;
+        }
+    }
+
+    CloseHandle(fileh);
+}
+
+stock bool:CheckNextSpecial()
+{
+    if (!bSpecials)
+    {
+        Special = VSHSpecial_Hale;
+        return true;
+    }
+
+    new bool:see[MAXPLAYERS+1];
+    new tHale = FindNextHale(see);
+
+    if (NextHale > 0 && GetBossCookie(NextHale) > 0)
+    {
+        Incoming = GetBossCookie(NextHale);
+        Special = Incoming;
+        Incoming = VSHSpecial_None;
+        return true;
+    }
+
+    if (GetBossCookie(tHale) > 0)
+    {
+        Incoming = GetBossCookie(tHale);
+        Special = Incoming;
+        Incoming = VSHSpecial_None;
+        return true;
+    }  
+
+    if (Incoming != VSHSpecial_None)
+    {
+        Special = Incoming;
+        Incoming = VSHSpecial_None;
+        return true;
+    }
+
+    while (Incoming == VSHSpecial_None || (Special && Special == Incoming))
+    {
+        Incoming = GetRandomInt(0, 10);
+        if (Special != VSHSpecial_Hale && !GetRandomInt(0, 5))
+        {
+            Incoming = VSHSpecial_Hale;
+        }
+        else
+        {
+            switch (Incoming)
+            {
+                case 1:
+                    Incoming = VSHSpecial_Vagineer;
+                case 2:
+                    Incoming = VSHSpecial_HHH;
+                case 3:
+                    Incoming = VSHSpecial_CBS;
+#if defined EASTER_BUNNY_ON
+                case 4: // 64
+                    Incoming = VSHSpecial_Bunny;
+#endif
+                case 5:
+                    Incoming = bMedieval ? VSHSpecial_Hale : VSHSpecial_Cave;
+                case 6:
+                    Incoming = VSHSpecial_Nue;
+                case 7:
+                    Incoming = VSHSpecial_Astro;
+                case 666:
+                    Incoming = g_bCanFog ? VSHSpecial_Guard : VSHSpecial_Hale;
+                default:
+                    Incoming = VSHSpecial_Hale;
+            }
+            if (IsDate(12, 15) && !GetRandomInt(0, 7)) //IsDecemberHoliday()
+            {
+                CPrintToChatAll("{olive}[VSH]{default} It's like Christmas morning!");
+                Incoming = VSHSpecial_CBS;
+            }
+            if (IsDate(10, 15) && !GetRandomInt(0, 7)) //IsHalloweenHoliday()
+            {
+                CPrintToChatAll("{olive}[VSH]{default} Happy Halloween!");
+                Incoming = VSHSpecial_HHH;
+            }
+#if defined EASTER_BUNNY_ON
+            if (IsDate(3, 25, 4, 20) && !GetRandomInt(0, 7)) //IsEasterHoliday()
+            {
+                CPrintToChatAll("{olive}[VSH]{default} Happy Easter!");
+                Incoming = VSHSpecial_Bunny;
+            }
+#endif
+        }
+    }
+
+    Special = Incoming;
+    Incoming = VSHSpecial_None;
+
+    return true;        //OH GOD WHAT AM I DOING THIS ALWAYS RETURNS TRUE (still better than using QueuePanelH as a dummy)
+}
+
+stock bool:IsDate(StartMonth, StartDate, EndMonth = 0, EndDate = 0, bool:forceRecalc = false)
+{
+    static iMonth;
+    static iDate;
+    static bool:found = false;
+
+    if (forceRecalc)
+    {
+        found = false;
+        iMonth = 0;
+        iDate = 0;
+    }
+
+    if (!found)
+    {
+        new timestamp = GetTime();
+        decl String:month[32], String:date[32];
+
+        FormatTime(month, sizeof(month), "%m", timestamp);
+        FormatTime(date, sizeof(date), "%d", timestamp);
+
+        iMonth = StringToInt(month);
+        iDate = StringToInt(date);
+        found = true;
+    }
+
+    return (iMonth == StartMonth && iDate >= StartDate) || (EndMonth && EndDate && (StartMonth < iMonth <= EndMonth) && (iDate <= EndDate));
+}
+
+/*stock bool:IsHalloweenHoliday(bool:forceRecalc = false)
+{
+    static iMonth;
+    static iDate;
+    static bool:found = false;
+
+    if (forceRecalc)
+    {
+        found = false;
+        iMonth = 0;
+        iDate = 0;
+    }
+
+    if (!found)
+    {
+        new timestamp = GetTime();
+        decl String:month[32], String:date[32];
+
+        FormatTime(month, sizeof(month), "%m", timestamp);
+        FormatTime(date, sizeof(date), "%d", timestamp);
+
+        iMonth = StringToInt(month);
+        iDate = StringToInt(date);
+        found = true;
+    }
+
+    return (iMonth == 10 && iDate >= 15);
+}
+
+stock bool:IsEasterHoliday(bool:forceRecalc = false)
+{
+    static iMonth;
+    static iDate;
+    static bool:found = false;
+
+    if (forceRecalc)
+    {
+        found = false;
+        iMonth = 0;
+        iDate = 0;
+    }
+
+    if (!found)
+    {
+        new timestamp = GetTime();
+        decl String:month[32], String:date[32];
+
+        FormatTime(month, sizeof(month), "%m", timestamp);
+        FormatTime(date, sizeof(date), "%d", timestamp);
+
+        iMonth = StringToInt(month);
+        iDate = StringToInt(date);
+        found = true;
+    }
+
+    return (iMonth == 3 && iDate >= 25) || (iMonth == 4 && iDate < 20);
+}
+
+stock bool:IsDecemberHoliday(bool:forceRecalc = false)
+{
+    static iMonth;
+    static iDate;
+    static bool:found = false;
+
+    if (forceRecalc)
+    {
+        found = false;
+        iMonth = 0;
+        iDate = 0;
+    }
+
+    if (!found)
+    {
+        new timestamp = GetTime();
+        decl String:month[32], String:date[32];
+
+        FormatTime(month, sizeof(month), "%m", timestamp);
+        FormatTime(date, sizeof(date), "%d", timestamp);
+
+        iMonth = StringToInt(month);
+        iDate = StringToInt(date);
+        found = true;
+    }
+
+    return (iMonth == 12 && iDate >= 15);
+}*/
+
+stock SearchForItemPacks()
+{
+    new bool:foundAmmo = false, bool:foundHealth = false;
+
+    new ent;
+
+    decl Float:pos[3];
+
+    if (StrEqual(currentmap, "vsh_minegay_b3", false))
+    {
+        DOWHILE_ENTFOUND(ent, "func_breakable")
+        {
+            decl String:tName[32];
+            GetEntPropString(ent, Prop_Data, "m_iName", tName, sizeof(tName));
+            if (StrEqual(tName, "medic_car_break", false))
+            {
+                SetVariantInt(20000);
+                AcceptEntityInput(ent, "SetHealth");
+            }
+            else if (GetEntProp(ent, Prop_Data, "m_iHammerID") == 3513)
+            {
+                AcceptEntityInput(ent, "Break");
+            }
+        }
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_ammopack_full")
+    {
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+
+        if (Enabled)
+        {
+            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+            AcceptEntityInput(ent, "Kill");
+            new ent2 = CreateEntityByName("item_ammopack_small");
+            TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
+            DispatchSpawn(ent2);
+            SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+            foundAmmo = true;
+        }
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_ammopack_medium")
+    {
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+
+        if (Enabled)
+        {
+            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+            AcceptEntityInput(ent, "Kill");
+            new ent2 = CreateEntityByName("item_ammopack_small");
+            TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
+            DispatchSpawn(ent2);
+            SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+            foundAmmo = true;
+        }
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_ammopack_small")
+    {
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+        foundAmmo = true;
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_healthkit_small")
+    {
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+
+        if (Enabled)
+        {
+            if (StrEqual(currentmap, "arena_artefact_v3", false))
+            {
+                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+                AcceptEntityInput(ent, "Kill");
+                new ent2 = CreateEntityByName("item_healthkit_medium");
+                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
+                DispatchSpawn(ent2);
+                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+            }
+        }
+        foundHealth = true;
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_healthkit_medium")
+    {
+        foundHealth = true;
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+    }
+
+    DOWHILE_ENTFOUND(ent, "item_healthkit_full")
+    {
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+
+        if (Enabled)
+        {
+            if (StrEqual(currentmap, "vsh_military_area_b1", false))
+            {
+                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+                AcceptEntityInput(ent, "Kill");
+                new ent2 = !GetRandomInt(0, 3) ? CreateEntityByName("item_healthkit_medium") : CreateEntityByName("item_healthkit_small");
+                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
+                DispatchSpawn(ent2);
+
+                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+            }
+
+            if (StrEqual(currentmap, "vsh_old_town_b3", false))
+            {
+                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+                AcceptEntityInput(ent, "Kill");
+                new ent2 = CreateEntityByName("item_healthkit_medium");
+                TeleportEntity(ent2, pos, NULL_VECTOR, NULL_VECTOR);
+                DispatchSpawn(ent2);
+
+                SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
+            }
+        }
+        foundHealth = true;
+    }
+
+    if (!foundAmmo)
+    {
+        SpawnRandomAmmo();
+    }
+
+    if (!foundHealth)
+    {
+        SpawnRandomHealth();
+    }
+
+    // Deprecated - removed all team_round_timers via stripper:source
+    /*if (StrEqual(currentmap, "vsh_dustshowdown_new", false))
+    {
+        //Stop the autowin timer in cp_degrootkeep
+
+        DOWHILE_ENTFOUND(ent, "team_round_timer")
+        {
+            if (ent > MaxClients && IsValidEdict(ent))
+            {
+                AcceptEntityInput(ent, "Disable");
+                SetVariantInt(999999);
+                AcceptEntityInput(ent, "SetTime");
+            }
+        }
+    }*/
+}
+
+stock SpawnRandomAmmo()
+{
+}
+
+stock SpawnRandomHealth()
+{
+}
+
+stock GetTeamPlayerCount(TFTeam:team)
+{
+    new count = 0;
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && GetClientTeam(i) == _:team)
+            count++;
+    }
+    return count;
+}
+
+stock CalcScores()
+{
+    decl j, damage;
+    new bool:spec = GetConVarBool(cvarForceSpecToHale);
+    botqueuepoints += 5;
+
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i))
+        {
+            damage = Damage[i];
+
+            new Handle:aevent = CreateEvent("player_escort_score", true);
+
+            SetEventInt(aevent, "player", i);
+
+            for (j = 0; damage - 600 > 0; damage -= 600, j++) {}
+
+            SetEventInt(aevent, "points", j);
+            FireEvent(aevent);
+
+            if (i == Hale)
+            {
+                if (IsFakeClient(Hale))
+                {
+                    botqueuepoints = 0;
+                }
+                else
+                {
+                    SetClientQueuePoints(i, 0);
+                }
+            }
+            else if (!IsFakeClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || spec))
+            {
+                if (!CheckHaleToggle(i))
+                {
+                    CPrintToChat(i, "{olive}[VSH]{default} %t", "vsh_add_points", 10);
+                    SetClientQueuePoints(i, GetClientQueuePoints(i) + 10);
+                }
+                else
+                {
+                    CPrintToChat(i, "{olive}[VSH]{default} You get 0 queue points. !haletoggle to enable.");
+                }
+            }
+        }
+    }
+}
+
+stock EmitSoundToAllExcept(exceptiontype = SOUNDEXCEPT_MUSIC, const String:sample[],
+    entity = SOUND_FROM_PLAYER,
+    channel = SNDCHAN_AUTO,
+    level = SNDLEVEL_NORMAL,
+    flags = SND_NOFLAGS,
+Float:volume = SNDVOL_NORMAL,
+        pitch = SNDPITCH_NORMAL,
+        speakerentity = -1,
+        const Float:origin[3] = NULL_VECTOR,
+        const Float:dir[3] = NULL_VECTOR,
+        bool:updatePos = true,
+    Float:soundtime = 0.0)
+{
+
+    new clients[MaxClients];
+    new total = 0;
+
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && CheckSoundException(i, exceptiontype))
+        {
+            clients[total++] = i;
+        }
+    }
+
+    if (!total)
+    {
+        return;
+    }
+
+    EmitSound(clients, total, sample, entity, channel,
+        level, flags, volume, pitch, speakerentity,
+        origin, dir, updatePos, soundtime);
+}
+
+stock bool:CheckSoundException(client, excepttype)
+{
+    if (!IsValidClient(client))
+    {
+        return false;
+    }
+
+    if (IsFakeClient(client) || !AreClientCookiesCached(client))
+    {
+        return true;
+    }
+
+    decl String:strCookie[32];
+
+    if (excepttype == SOUNDEXCEPT_VOICE)
+    {
+        GetClientCookie(client, VoiceCookie, strCookie, sizeof(strCookie));
+    }
+    else
+    {
+        GetClientCookie(client, MusicCookie, strCookie, sizeof(strCookie));
+    }
+
+    if (strCookie[0] == 0)
+    {
+        return true;
+    }
+    else
+    {
+        return bool:StringToInt(strCookie);
+    }
+}
+
+stock SkipHalePanelNotify(client, bool:newchoice = true)
+{
+    if (!Enabled || !IsValidClient(client) || IsVoteInProgress() || CheckHaleToggle(client))
+    {
+        return;
+    }
+
+    new Handle:panel = CreatePanel();
+    decl String:s[256];
+
+    SetPanelTitle(panel, "[VSH] You're Hale next!");
+    Format(s, sizeof(s), "%t\nAlternatively, use !hale_resetq.", "vsh_to0_near");
+    CRemoveTags(s, sizeof(s));
+
+    ReplaceString(s, sizeof(s), "{olive}", "");
+    ReplaceString(s, sizeof(s), "{default}", "");
+
+    DrawPanelItem(panel, s);
+    SendPanelToClient(panel, client, SkipHalePanelH, 30);
+    CloseHandle(panel);
+
+    return;
+}
+
+stock Handle:PrepareItemHandle(Handle:hItem, String:name[] = "", index = -1, const String:att[] = "", bool:dontpreserve = false)
+{
+    static Handle:hWeapon;
+    new addattribs = 0;
+
+    new String:weaponAttribsArray[32][32];
+    new attribCount = ExplodeString(att, " ; ", weaponAttribsArray, 32, 32);
+
+    new flags = OVERRIDE_ATTRIBUTES;
+    if (!dontpreserve)
+    {
+        flags |= PRESERVE_ATTRIBUTES;
+    }
+
+    if (hWeapon == INVALID_HANDLE)
+    {
+        hWeapon = TF2Items_CreateItem(flags);
+    }
+    else
+    {
+        TF2Items_SetFlags(hWeapon, flags);
+    }
+
+    //  new Handle:hWeapon = TF2Items_CreateItem(flags);    //INVALID_HANDLE;
+
+    if (hItem != INVALID_HANDLE)
+    {
+        addattribs = TF2Items_GetNumAttributes(hItem);
+
+        if (addattribs > 0)
+        {
+            for (new i = 0; i < 2 * addattribs; i += 2)
+            {
+                new bool:dontAdd = false;
+                new attribIndex = TF2Items_GetAttributeId(hItem, i);
+
+                for (new z = 0; z < attribCount + i; z += 2)
+                {
+                    if (StringToInt(weaponAttribsArray[z]) == attribIndex)
+                    {
+                        dontAdd = true;
+
+                        break;
+                    }
+                }
+
+                if (!dontAdd)
+                {
+                    IntToString(attribIndex, weaponAttribsArray[i + attribCount], 32);
+                    FloatToString(TF2Items_GetAttributeValue(hItem, i), weaponAttribsArray[i + 1 + attribCount], 32);
+                }
+            }
+
+            attribCount += 2 * addattribs;
+        }
+
+        CloseHandle(hItem); //probably returns false but whatever
+    }
+
+    if (name[0] != '\0')
+    {
+        flags |= OVERRIDE_CLASSNAME;
+        TF2Items_SetClassname(hWeapon, name);
+    }
+
+    if (index != -1)
+    {
+        flags |= OVERRIDE_ITEM_DEF;
+        TF2Items_SetItemIndex(hWeapon, index);
+    }
+
+    if (attribCount > 0)
+    {
+        TF2Items_SetNumAttributes(hWeapon, (attribCount / 2));
+        new i2 = 0;
+
+        for (new i = 0; i < attribCount && i < 32; i += 2)
+        {
+            TF2Items_SetAttribute(hWeapon, i2, StringToInt(weaponAttribsArray[i]), StringToFloat(weaponAttribsArray[i + 1]));
+            i2++;
+        }
+    }
+    else
+    {
+        TF2Items_SetNumAttributes(hWeapon, 0);
+    }
+
+    TF2Items_SetFlags(hWeapon, flags);
+
+    return hWeapon;
+}
+
+stock ReplaceList(client)
+{
+    if (IsValidEntity(FindPlayerBack(client, { 444 }, 1)))
+    {
+        TF2Attrib_SetByName(client, "self dmg push force increased", 1.8);
+        if (IsClientChdata(client)) CPrintToChdata("%N detected mantreads", client);
+    }
+    else
+    {
+        TF2Attrib_RemoveByName(client, "self dmg push force increased");
+        if (IsClientChdata(client)) CPrintToChdata("%N removed mantreads", client);
+    }
+
+    if (bMedieval)
+    {
+        return;
+    }
+
+    new weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
+    new index = -1;
+
+    if (weapon > MaxClients && IsValidEdict(weapon))
+    {
+        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+        switch (index) // ReplacelistPrimary
+        {
+            case 41: // Natascha becomes Tank Goodness
+            {
+                if (GetEntProp(weapon, Prop_Send, "m_iEntityQuality") != 10)
+                {
+                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                    weapon = SpawnWeapon(client, "tf_weapon_minigun", 850, 64, 10, "87 ; 0.5 ; 178 ; 0.75 ; 1 ; 0.25 ; 6 ; 0.75 ; 57 ; 5 ; 26 ; 100");
+
+                    if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
+                    {
+                        CPrintToChat(client, "{olive}[VSH]{default} Equipped The Tank Goodness instead of Natascha.");
+                        VSHFlags[client] |= VSHFLAG_EQUIPMSG;
+                    }
+                    //PrimaryMaxAmmo[client] = 200;
+                }
+            }
+            case 424: // Tomislav becomes Maxine
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                weapon = SpawnWeapon(client, "tf_weapon_minigun", 41, 64, 10, "421 ; 1 ; 75 ; 3.0 ; 431 ; 6 ; 5 ; 1.2 ; 1 ; 0.75 ; 87 ; 0.575 ; 178 ; 0.75");
+            
+                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
+                {
+                    CPrintToChat(client, "{olive}[VSH]{default} Equipped Maxine instead of Tomislav.");
+                    VSHFlags[client] |= VSHFLAG_EQUIPMSG;
+                }
+               
+               //PrimaryMaxAmmo[client] = 200;
+            }
+            case 237: // Rocket Jumper
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                weapon = SpawnWeapon(client, "tf_weapon_rocketlauncher", 18, 1, 0, "265 ; 99999.0");
+                SetAmmo(client, 0, 20);
+                //PrimaryMaxAmmo[client] = 20;
+            }
+            case 772: // BFB
+            {
+                if (Special == VSHSpecial_HHH)
+                {
+                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                    weapon = SpawnWeapon(client, "tf_weapon_pep_brawler_blaster", 772, 64, 0, "3 ; 0.66 ; 418 ; 1 ; 49 ; 1 ; 54 ; 0.875 ; 419 ; 0 ; 532 ; 1");
+                    //PrimaryMaxAmmo[client] = 32;
+                }
+                else
+                {
+                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                    weapon = SpawnWeapon(client, "tf_weapon_pep_brawler_blaster", 772, 64, 0, "3 ; 0.66 ; 418 ; 1 ; 49 ; 1 ; 54 ; 0.875 ; 419 ; 0 ; 532 ; 0.25");
+                    //PrimaryMaxAmmo[client] = 32;
+                }
+            }
+            case 17, 204, 412: // Syringe gun
+            {
+                if (GetEntProp(weapon, Prop_Send, "m_iEntityQuality") != 10)
+                {
+                    TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Primary);
+                    SpawnWeapon(client, "tf_weapon_syringegun_medic", 17, 1, 10, "17 ; 0.05 ; 144 ; 1");
+                    //PrimaryMaxAmmo[client] = 150;
+                }
+            }
+        }
+    }
+
+    weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary);
+
+    if (weapon > MaxClients && IsValidEdict(weapon))
+    {
+        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+        switch (index) // ReplacelistSecondary
+        {
+            case 57: // Razorback
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+                weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 0, "1");
+                //PrimaryMaxAmmo[client] = 75;
+            }
+            /*case 46: // Bonk
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+                weapon = SpawnWeapon(client, "tf_weapon_lunchbox_drink", 163, 1, 0, "144 ; 2");
+            }*/
+            case 528: // Short Circuit
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+                weapon = SpawnWeapon(client, "tf_weapon_laser_pointer", 140, 1, 0, "1");
+            }
+            case 265: // Sticky Jumper becomes Quick Launcher
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+                weapon = SpawnWeapon(client, "tf_weapon_pipebomblauncher", 20, 1, 10, "6 ; 0.5 ; 126 ; -0.4 ; 1 ; 0.8 ; 3 ; 0.25 ; 100 ; 0.8 ; 207 ; 2.0 ; 89 ; -6");
+                SetAmmo(client, TFWeaponSlot_Secondary, 24);
+                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG))
+                {
+                    CPrintToChat(client, "{olive}[VSH]{default} Equipped The Quick Launcher instead of Sticky Jumper.");
+                    VSHFlags[client] |= VSHFLAG_EQUIPMSG;
+                }
+                //PrimaryMaxAmmo[client] = 24;
+            }
+            case 29, 211, 35, 663, 796, 805, 885, 894, 903, 912, 961, 970: // Mediguns & Kritzkrieg
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+                weapon = SpawnWeapon(client, "tf_weapon_medigun", 35, 5, 10, "10 ; 1.25 ; 178 ; 0.75");
+                SetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel", 0.42);
+
+                //Mortar's Mortifier
+                //else weapon = SpawnWeapon(client, "tf_weapon_medigun", 35, 5, 9, "178 ; 0.75 ; 269 ; 1 ; 9 ; 0.0 ; 7 ; -1.0 ; 134 ; 4");
+            }
+            case 998: // Vaccinator
+            {
+                SetEntProp(weapon, Prop_Send, "m_nChargeResistType", 1);
+            }
+            /*case 735, 736, 810, 831, 933, 1080, 1102:    //Remove sappers
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Secondary);
+            }*/
+        }
+    }
+
+    // We just did the same code above...
+    /*if (IsValidEntity(FindPlayerBack(client, { 57 }, 1)))
+    {
+        RemovePlayerBack(client, { 57 }, 1);
+        weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 0, "1");
+        PrimaryMaxAmmo[client] = 75;
+    }*/
+
+    if (IsValidEntity(FindPlayerBack(client, { 642, 231 }, 2)))
+    {
+        weapon = SpawnWeapon(client, "tf_weapon_smg", 16, 1, 6, "15 ; 0 ; 1 ; 0.75");
+        //PrimaryMaxAmmo[client] = 75;
+    }
+
+    weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+
+    if (weapon > MaxClients && IsValidEdict(weapon))
+    {
+        index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+        switch (index) // ReplaceListMelee
+        {
+            /*case 331: // Fists of Steel
+            {
+                TF2_RemoveWeaponSlot2(client, TFWeaponSlot_Melee);
+                weapon = SpawnWeapon(client, "tf_weapon_fists", 195, 1, 6, "1");
+            }*/
+            case 357: // Zatoichi
+            {
+                CreateTimer(1.0, Timer_NoHonorBound, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+            }
+            //case 142:
+            //{
+            //    SetEntityRenderMode(weapon, RENDER_TRANSCOLOR);
+            //    SetEntityRenderColor(weapon, 255, 255, 255, 75);
+            //}
+        }
+    }
+
+    return;
+}
+
+stock RemovePlayerTarge(client)
+{
+    new edict = MaxClients + 1;
+    while ((edict = FindEntityByClassname2(edict, "tf_wearable_demoshield")) != -1)
+    {
+        new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
+
+        if ((idx == 131 || idx == 406 || idx == 1099) && GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
+        {
+            TF2_RemoveWearable(client, edict);
+            //AcceptEntityInput(edict, "Kill");
+        }
+    }
+}
+
+stock RemovePlayerBack(client, indices[], len)
+{
+    if (len <= 0)
+    {
+        return;
+    }
+
+    new edict = MaxClients + 1;
+
+    while ((edict = FindEntityByClassname2(edict, "tf_wearable")) != -1)
+    {
+        decl String:netclass[32];
+
+        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFWearable"))
+        {
+            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
+
+            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
+            {
+                for (new i = 0; i < len; i++)
+                {
+                    if (idx == indices[i])
+                    {
+                        TF2_RemoveWearable(client, edict);
+                    }
+                }
+            }
+        }
+    }
+
+    edict = MaxClients + 1;
+
+    while ((edict = FindEntityByClassname2(edict, "tf_powerup_bottle")) != -1)
+    {
+        decl String:netclass[32];
+
+        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFPowerupBottle"))
+        {
+            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
+
+            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
+            {
+                for (new i = 0; i < len; i++)
+                {
+                    if (idx == indices[i])
+                    {
+                        TF2_RemoveWearable(client, edict);
+                        //AcceptEntityInput(edict, "Kill");
+                    }
+                }
+            }
+        }
+    }
+}
+
+stock FindPlayerBack(client, indices[], len)
+{
+    if (len <= 0)
+    {
+        return -1;
+    }
+
+    new edict = MaxClients + 1;
+
+    while ((edict = FindEntityByClassname2(edict, "tf_wearable")) != -1)
+    {
+        decl String:netclass[32];
+
+        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFWearable"))
+        {
+            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
+
+            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
+            {
+                for (new i = 0; i < len; i++)
+                {
+                    if (idx == indices[i])
+                    {
+                        return edict;
+                    }
+                }
+            }
+        }
+    }
+
+    edict = MaxClients + 1;
+
+    while ((edict = FindEntityByClassname2(edict, "tf_powerup_bottle")) != -1)
+    {
+        decl String:netclass[32];
+
+        if (GetEntityNetClass(edict, netclass, sizeof(netclass)) && StrEqual(netclass, "CTFPowerupBottle"))
+        {
+            new idx = GetEntProp(edict, Prop_Send, "m_iItemDefinitionIndex");
+
+            if (GetEntPropEnt(edict, Prop_Send, "m_hOwnerEntity") == client && !GetEntProp(edict, Prop_Send, "m_bDisguiseWearable"))
+            {
+                for (new i = 0; i < len; i++)
+                {
+                    if (idx == indices[i])
+                    {
+                        return edict;
+                    }
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+stock StopHaleMusic(client)
+{
+    if (!IsValidClient(client))
+    {
+        return;
+    }
+
+    StopSound(client, SNDCHAN_AUTO, HHHTheme);
+    StopSound(client, SNDCHAN_AUTO, CBSTheme);
+    StopSound(client, SNDCHAN_AUTO, NueMusic);
+    StopSound(client, SNDCHAN_AUTO, AstroMusic);
+    StopSound(client, SNDCHAN_AUTO, PortalMusic);
+    StopSound(client, SNDCHAN_AUTO, PortalMusicDuo);
+    StopSound(client, SNDCHAN_AUTO, PortalMusicFinal);
+}
+
+stock SetControlPoint(bool:enable)
+{
+    new CPm = -1; //CP = -1;
+
+    while ((CPm = FindEntityByClassname2(CPm, "team_control_point")) != -1)
+    {
+        if (CPm > MaxClients && IsValidEdict(CPm))
+        {
+            AcceptEntityInput(CPm, (enable ? "ShowModel":"HideModel"));
+            SetVariantInt(enable ? 0:1);
+            AcceptEntityInput(CPm, "SetLocked");
+        }
+    }
+
+    g_bIsCapEnabled = enable;
+}
+
+stock SetArenaCapEnableTime(Float:time)
+{
+    new ent = -1;
+    decl String:strTime[32];
+    FloatToString(time, strTime, sizeof(strTime));
+
+    if ((ent = FindEntityByClassname2(-1, "tf_logic_arena")) != -1 && IsValidEdict(ent))
+    {
+        DispatchKeyValue(ent, "CapEnableDelay", strTime);
+    }
+}
+
+stock ForceHale(admin, client, bool:hidden, bool:forever = false)
+{
+    if (forever)
+    {
+        Hale = client;
+    }
+    else
+    {
+        NextHale = client;
+    }
+
+    if (!hidden)
+    {
+        CPrintToChatAllEx(client, "{olive}[VSH] {teamcolor}%N {default}%t", client, "vsh_hale_select_text");
+    }
+}
+
+stock GetRJFlag(client)
+    return (0 < client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client) ? g_bClientRJFlag[client] : false);
+
+stock SetRJFlag(client, bool:bState)
+{
+    if (0 < client <= MaxClients)
+        g_bClientRJFlag[client] = bState;
+}
+
+/*stock GetAirBlastFlag(client)
+    return (0 < client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client) ? g_bClientAirBlastFlag[client] : false);
+stock SetAirBlastFlag(client, bool:bState)
+{
+    if (0 < client <= MaxClients)
+        g_bClientAirBlastFlag[client] = bState;
+}*/
+
+stock DoubleJump(const any:client, Float:fl_Boost = 280.0, bool:bTrail = true)
+{
+    decl Float:vVel[3];
+    GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVel);  // get current speeds
+
+    /*new Float:x, Float:y, Float:z;
+    new buttons = GetClientButtons(client);
+    CleanupClientDirection(client, buttons, x, y, z, fl_Boost);
+    vVel[0] = x;
+    vVel[1] = y;
+    vVel[2] = z;*/
+
+    /*buttons &= (IN_FORWARD|IN_BACK|IN_MOVELEFT|IN_MOVERIGHT);
+    if (!((buttons & (IN_FORWARD|IN_BACK|IN_MOVELEFT|IN_MOVERIGHT)) == 0))
+    {
+        new Float:speed = GetEntPropFloat(client, Prop_Send, "m_flMaxspeed");
+        ScaleVector(vVel, speed);
+    }*/
+
+    if (bTrail) CreateTimer(2.0, RemoveEnt, EntIndexToEntRef(AttachParticle(client, "doublejump_trail")));
+
+    vVel[2] = fl_Boost;
+    TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVel);      // boost player
+}
+
+stock bool:IsNearSpencer(client) 
+{ 
+    new bool:dispenserheal, medics = 0; 
+    new healers = GetEntProp(client, Prop_Send, "m_nNumHealers"); 
+    if (healers > 0) 
+    { 
+        for (new i = 1; i <= MaxClients; i++) 
+        { 
+            if (IsValidClient(i) && IsPlayerAlive(i) && GetHealingTarget(i) == client) 
+                medics++; 
+        } 
+    } 
+    dispenserheal = (healers > medics) ? true : false; 
+    return dispenserheal; 
+} 
+
+stock FindSentry(client)
+{
+    new i = -1;
+
+    while ((i = FindEntityByClassname2(i, "obj_sentrygun")) != -1)
+    {
+        if (GetEntPropEnt(i, Prop_Send, "m_hBuilder") == client)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+stock OnlyScoutsLeft()
+{
+    for (new client = 1; client <= MaxClients; client++)
+    {
+        if (IsValidClient(client) && IsPlayerAlive(client) && client != Hale && TF2_GetPlayerClass(client) != TFClass_Scout)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+stock GetIndexOfWeaponSlot(client, slot)
+{
+    new weapon = GetPlayerWeaponSlot(client, slot);
+
+    return (weapon > MaxClients && IsValidEntity(weapon) ? GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex"):-1);
+}
+
+stock IsWeaponSlotActive(iClient, iSlot)
+{
+    new hActive = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
+    new hWeapon = GetPlayerWeaponSlot(iClient, iSlot);
+    return (hWeapon == hActive);
+}
+
+stock IsIndexActive(iClient, Index)
+{
+    new hActive = GetEntPropEnt(iClient, Prop_Send, "m_hActiveWeapon");
+    new idx = IsValidEntity(hActive) ? GetEntProp(hActive, Prop_Send, "m_iItemDefinitionIndex"):-1;
+
+    return (hActive > MaxClients && Index == idx);
+}
+
+// The amount of health a player will spawn with based on their class and weapons.
+stock GetClientSpawnHealth(client)
+{
+    new HP = 125;
+    new pr = GetIndexOfWeaponSlot(client, TFWeaponSlot_Primary);
+    new se = GetIndexOfWeaponSlot(client, TFWeaponSlot_Secondary);
+    new me = GetIndexOfWeaponSlot(client, TFWeaponSlot_Melee);
+    switch (TF2_GetPlayerClass(client))
+    {
+        case TFClass_Scout:
+        {
+            if (pr == 773) HP += 15; // Pocket Pistol
+            if (me == 44)  HP -= 15; // Sandman
+        }    
+        case TFClass_Soldier:
+        {
+            HP = 200;
+            if (se == 226) HP += 20; // Battalion's Backup
+            if (me == 357) HP += 30; // Half-Zatoichi
+        }
+        case TFClass_Pyro:     return 175;
+        case TFClass_DemoMan:
+        {
+            HP = 175;
+            switch (pr){case 405, 608:            HP += 25;} // Demoboots
+            switch (me){case 132, 266, 482, 1082: HP -= 25;  // Eyelanders
+                        case 327, 404, 357:       HP += 30;} // Claid + Persuader + Half-Zatoichi
+        }
+        case TFClass_Heavy:
+        {
+            HP = 300;
+            if (me == 310) HP -= 20; // Warrior's Spirit
+            if (pr == 850) HP += 100; // Tank Goodness
+        }
+        case TFClass_Engineer:
+        {
+            if (me == 142) HP += 25; // Gunslinger
+        }
+        case TFClass_Medic:    return 150;
+        case TFClass_Sniper:
+        {
+            if (se == 231) HP += 25; // Darwin's Danger Shield
+        }
+        case TFClass_Spy:
+        {
+            if (me == 356) HP -= 60; // Kunai
+            if (me == 461) HP -= 25; // Big Earner
+        }
+    }
+    return HP;
+}
+
+stock GetClassBaseHP(client)
+{
+    switch (TF2_GetPlayerClass(client))
+    {
+        case TFClass_Scout:     return 125;
+        case TFClass_Soldier:   return 200;
+        case TFClass_Pyro:      return 175;
+        case TFClass_DemoMan:   return 175;
+        case TFClass_Heavy:     return 300;
+        case TFClass_Engineer:  return 125;
+        case TFClass_Medic:     return 150;
+        case TFClass_Sniper:    return 125;
+        case TFClass_Spy:       return 125;
+    }
+    return 125;
+}
+
+stock GetSpellBook(client)
+{
+    new ent = -1;
+    while((ent = FindEntityByClassname(ent, "tf_weapon_spellbook")) != INVALID_ENT_REFERENCE)
+    {
+        if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client) return ent;
+    }
+    return -1;
+}
+
+stock SpawnManyAmmoPacks(client, String:model[], skin = 0, num = 14, Float:offsz = 30.0)
+{
+    if (hSetAmmoVelocity == INVALID_HANDLE)
+    {
+        return;
+    }
+
+    decl Float:pos[3], Float:vel[3], Float:ang[3];
+
+    ang[0] = 90.0;
+    ang[1] = 0.0;
+    ang[2] = 0.0;
+
+    GetClientAbsOrigin(client, pos);
+
+    pos[2] += offsz;
+
+    for (new i = 0; i < num; i++)
+    {
+        vel[0] = GetRandomFloat(-400.0, 400.0);
+        vel[1] = GetRandomFloat(-400.0, 400.0);
+        vel[2] = GetRandomFloat(300.0, 500.0);
+
+        pos[0] += GetRandomFloat(-5.0, 5.0);
+        pos[1] += GetRandomFloat(-5.0, 5.0);
+
+        new ent = CreateEntityByName("tf_ammo_pack");
+
+        if (!IsValidEntity(ent))
+        {
+            continue;
+        }
+
+        SetEntityModel(ent, model);
+        DispatchKeyValue(ent, "OnPlayerTouch", "!self,Kill,,0,-1"); //for safety, but it shouldn't act like a normal ammopack
+        SetEntProp(ent, Prop_Send, "m_nSkin", skin);
+        SetEntProp(ent, Prop_Send, "m_nSolidType", 6);
+
+        //      SetEntityMoveType(ent, MOVETYPE_FLYGRAVITY);
+        //      SetEntProp(ent, Prop_Send, "movetype", 5);
+        //      SetEntProp(ent, Prop_Send, "movecollide", 0);
+
+        SetEntProp(ent, Prop_Send, "m_usSolidFlags", 152);
+        SetEntProp(ent, Prop_Send, "m_triggerBloat", 24);
+        SetEntProp(ent, Prop_Send, "m_CollisionGroup", 1);
+        SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
+        SetEntProp(ent, Prop_Send, "m_iTeamNum", 2);
+
+        TeleportEntity(ent, pos, ang, vel);
+        DispatchSpawn(ent);
+        TeleportEntity(ent, pos, ang, vel);
+
+        SDKCall(hSetAmmoVelocity, ent, vel);
+
+        SetEntProp(ent, Prop_Data, "m_iHealth", 900);
+
+        new offs = GetEntSendPropOffs(ent, "m_vecInitialVelocity", true);
+
+        SetEntData(ent, offs - 4, 1, _, true);
+        /*      SetEntData(ent, offs-13, 0, 1, true);
+        SetEntData(ent, offs-11, 1, 1, true);
+        SetEntData(ent, offs-15, 1, 1, true);
+        SetEntityMoveType(ent, MOVETYPE_FLYGRAVITY);
+        SetEntProp(ent, Prop_Data, "m_nNextThinkTick", GetEntProp(client, Prop_Send, "m_nTickBase") + 3);
+        SetEntPropVector(ent, Prop_Data, "m_vecAbsVelocity", vel);
+        SetEntPropVector(ent, Prop_Data, "m_vecVelocity", vel);
+        SetEntPropVector(ent, Prop_Send, "m_vecInitialVelocity", vel);
+        SetEntProp(ent, Prop_Send, "m_bClientSideAnimation", 1);
+        PrintToChatAll("aeiou %d %d %d %d %d", GetEntData(ent, offs-16, 1), GetEntData(ent, offs-15, 1), GetEntData(ent, offs-14, 1), GetEntData(ent, offs-13, 1), GetEntData(ent, offs-12, 1));
+        */
+    }
+}
+
+/*
+ Teleports a client to a random spawn location
+
+ iClient - Client to teleport
+ iTeam - Team of spawn points to use. If not specified or invalid team number, teleport to ANY spawn point.
+
+*/
+stock TeleportToSpawn(iClient, iTeam = 0)
+{
+    new iEnt;
+    decl Float:vPos[3];
+    decl Float:vAng[3];
+    new Handle:hArray = CreateArray();
+    DOWHILE_ENTFOUND(iEnt, "info_player_teamspawn")
+    {
+        if (iTeam <= 1) // Not RED (2) nor BLu (3)
+        {
+            PushArrayCell(hArray, iEnt);
+        }
+        else
+        {
+            new iSpawnTeam = GetEntProp(iEnt, Prop_Send, "m_iTeamNum");
+            if (iSpawnTeam == iTeam)
+            {
+                PushArrayCell(hArray, iEnt);
+            }
+        }
+    }
+
+    iEnt = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1));
+    CloseHandle(hArray);
+
+    // Technically you'll never find a map without a spawn point.
+    GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", vPos);
+    GetEntPropVector(iEnt, Prop_Send, "m_angRotation", vAng);
+    TeleportEntity(iClient, vPos, vAng, NULL_VECTOR);
+
+    /*if (GetArraySize(hArray) <= 0)
+    {
+        // No iEnt was found. This should be impossible.
+    }
+    else
+    {
+        iEnt = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1))
+    }*/
+}
+
+stock CheckClientDifficulty(client)
+{
+    if (!IsValidClient(client))
+    {
+        return mode_normal;
+    }
+
+    if (IsFakeClient(client) || !AreClientCookiesCached(client))
+    {
+        return mode_normal;
+    }
+
+    decl String:cky[5];
+
+    GetClientCookie(client, ModeCookie, cky, sizeof(cky));
+
+    if (cky[0] == 0)
+    {
+        return mode_normal;   //If the cookie doesn't exist yet, normal mode by default
+    }
+    else
+    {
+        return StringToInt(cky);
+    }
+}
+
+stock GetClientCloakIndex(client)
+{
+    if (!IsValidClient(client))
+    {
+        return -1;
+    }
+
+    new wep = GetPlayerWeaponSlot(client, 4);
+
+    if (!IsValidEntity(wep))
+    {
+        return -1;
+    }
+
+    new String:classname[64];
+
+    GetEntityClassname(wep, classname, sizeof(classname));
+
+    if (strncmp(classname, "tf_wea", 6, false) != 0)
+    {
+        return -1;
+    }
+
+    return GetEntProp(wep, Prop_Send, "m_iItemDefinitionIndex");
+}
+
+stock bool:Client_IsValid(client, bool:checkConnected=true)
+{
+    if (client > 4096) {
+        client = EntRefToEntIndex(client);
+    }
+
+    if (client < 1 || client > MaxClients) {
+        return false;
+    }
+
+    if (checkConnected && !IsClientConnected(client)) {
+        return false;
+    }
+    
+    return true;
+}
+
+stock SpawnSmallHealthPackAt(client, ownerteam = 0)
+{
+    if (!IsValidClient(client) || !IsPlayerAlive(client))
+    {
+        return;
+    }
+
+    new healthpack = CreateEntityByName("item_healthkit_small");
+
+    decl Float:pos[3];
+    GetClientAbsOrigin(client, pos);
+
+    pos[2] += 20.0;
+
+    if (IsValidEntity(healthpack))
+    {
+        DispatchKeyValue(healthpack, "OnPlayerTouch", "!self,Kill,,0,-1");  //for safety, though it normally doesn't respawn
+        DispatchSpawn(healthpack);
+
+        SetEntProp(healthpack, Prop_Send, "m_iTeamNum", ownerteam, 4);
+        SetEntityMoveType(healthpack, MOVETYPE_VPHYSICS);
+
+        new Float:vel[3];
+
+        vel[0] = float(GetRandomInt(-10, 10)), vel[1] = float(GetRandomInt(-10, 10)), vel[2] = 50.0;
+
+        TeleportEntity(healthpack, pos, NULL_VECTOR, vel);
+        //      CreateTimer(17.0, Timer_RemoveCandycaneHealthPack, EntIndexToEntRef(healthpack), TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+stock IncrementHeadCount(client)
+{
+    if (!TF2_IsPlayerInCondition(client, TFCond_DemoBuff))
+    {
+        TF2_AddCondition(client, TFCond_DemoBuff, -1.0);
+    }
+
+    new decapitations = GetEntProp(client, Prop_Send, "m_iDecapitations");
+
+    SetEntProp(client, Prop_Send, "m_iDecapitations", decapitations + 1);
+
+    new health = GetClientHealth(client);
+
+    //  health += (decapitations >= 4 ? 10:15);
+    health += 15;
+
+    SetEntProp(client, Prop_Data, "m_iHealth", health);
+    SetEntProp(client, Prop_Send, "m_iHealth", health);
+
+    TF2_AddCondition(client, TFCond_SpeedBuffAlly, 0.01);   //recalc their speed
+}
+
+stock SetDecapitations(client, decaps)
+{
+    SetEntProp(client, Prop_Send, "m_iDecapitations", decaps);
+}
+
+stock SwitchToOtherWeapon(client)
+{
+    new ammo = GetAmmo(client, 0);
+    new weapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
+    new clip = (IsValidEntity(weapon) ? GetEntProp(weapon, Prop_Send, "m_iClip1"):-1);
+
+    if (!(ammo == 0 && clip <= 0))
+    {
+        SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", weapon);
+    }
+    else
+    {
+        SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary));
+    }
+}
+
+stock RestrictToMelee(iClient) //bool:bSpawnNewMelee = false
+{
+    for (new i = 0; i <= 5; i++)
+    {
+        if (i != TFWeaponSlot_Melee)
+        {
+            TF2_RemoveWeaponSlot2(iClient, i);
+        }
+    }
+
+    SwitchToSlot(iClient, TFWeaponSlot_Melee);
+}
+
+stock SwitchToSlot(iClient, iSlot)
+{
+    new iWeapon = GetPlayerWeaponSlot(iClient, iSlot);
+
+    if (iWeapon > 0)
+    {
+        EquipPlayerWeapon(iClient, iWeapon);
+    }
+}
+
+stock FindTeleOwner(client)
+{
+    if (!IsValidClient(client) || !IsPlayerAlive(client))
+    {
+        return -1;
+    }
+
+    new tele = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity");
+
+    decl String:classname[32];
+
+    if (IsValidEntity(tele) && GetEdictClassname(tele, classname, sizeof(classname)) && strcmp(classname, "obj_teleporter", false) == 0)
+    {
+        new owner = GetEntPropEnt(tele, Prop_Send, "m_hBuilder");
+        if (IsValidClient(owner))
+        {
+            return owner;
+        }
+    }
+
+    return -1;
+}
+
+stock TF2_IsPlayerCritBuffed(client)
+{
+    return (TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged)
+        || TF2_IsPlayerInCondition(client, TFCond_HalloweenCritCandy)
+        || TF2_IsPlayerInCondition(client, TFCond:34)
+        || TF2_IsPlayerInCondition(client, TFCond:35)
+        || TF2_IsPlayerInCondition(client, TFCond_CritOnFirstBlood)
+        || TF2_IsPlayerInCondition(client, TFCond_CritOnWin)
+        || TF2_IsPlayerInCondition(client, TFCond_CritOnFlagCapture)
+        || TF2_IsPlayerInCondition(client, TFCond_CritOnKill)
+        || TF2_IsPlayerInCondition(client, TFCond_CritMmmph)
+        );
+}
+
+stock DisguiseNue(client)
+{
+    if (IsValidClient(client) && IsPlayerAlive(client))
+    {
+        new disguisetarget = -1;
+
+        do
+        {
+            disguisetarget = GetRandomInt(1, MaxClients);
+        }
+        while ((RedAlivePlayers > 0) && (!IsValidClient(disguisetarget) || (disguisetarget == client)));
+
+        if (!IsValidClient(disguisetarget))
+        {
+            disguisetarget = client;
+        }
+
+        new team = GetClientTeam(client) == 2 ? 3 : 2;
+
+        new TFClassType:class = TF2_GetPlayerClass(disguisetarget);
+
+        TF2_DisguisePlayer(client, TFTeam:team, class, disguisetarget);
+
+        /*new disguisetarget = -1;
+        new team = GetClientTeam(client);
+        new Handle:hArray = CreateArray();
+
+        for (new clientcheck = 0; clientcheck <= MaxClients; clientcheck++)
+        {
+            if (IsValidClient(clientcheck) && GetClientTeam(clientcheck) != team && clientcheck != client)
+            {
+                PushArrayCell(hArray, clientcheck);
+            }
+        }
+
+        if (GetArraySize(hArray) <= 0)
+        {
+            disguisetarget = client;
+        }
+        else
+        {
+            disguisetarget = GetArrayCell(hArray, GetRandomInt(0, GetArraySize(hArray) - 1));
+        }
+
+        if (!IsValidClient(disguisetarget))
+        {
+            disguisetarget = client;
+        }
+
+        team = GetClientTeam(disguisetarget);*/
+
+        //CloseHandle(hArray);
+    }
+}
+
+stock SetNextAttack(weapon, Float:duration = 0.0)
+{
+    if (weapon <= MaxClients || !IsValidEntity(weapon)) return;
+
+    new Float:next = GetGameTime() + duration;
+
+    SetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack", next);
+    SetEntPropFloat(weapon, Prop_Send, "m_flNextSecondaryAttack", next);
+}
+
+
+stock FindNextHale(bool:array[])
+{
+    new tBoss = -1;
+    new tBossPoints = -1073741824;
+    new bool:spec = GetConVarBool(cvarForceSpecToHale);
+
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || (spec && GetClientTeam(i) != _:TFTeam_Unassigned)))   // GetClientTeam(i) != _:TFTeam_Unassigned)
+        {
+            new points = GetClientQueuePoints(i);
+
+            if (points >= tBossPoints && !array[i] && !CheckHaleToggle(i))
+            {
+                tBoss = i;
+                tBossPoints = points;
+            }
+        }
+    }
+    return tBoss;
+}
+
+stock bool:NextHaleTogglers(bool:array[])
+{
+    new togs = 0;
+    new Players = 0;
+    new bool:spec = GetConVarBool(cvarForceSpecToHale);
+
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && (GetClientTeam(i) > _:TFTeam_Spectator || (spec && GetClientTeam(i) != _:TFTeam_Unassigned)) && !array[i])
+        {
+            Players++;
+
+            if (CheckHaleToggle(i))
+            {
+                togs++;
+            }
+        }
+    }
+
+    if (Players <= 1) //If there's only one player, we need more players anyway so disable this.
+        return false;
+
+    if (togs == Players)    //If everyone disabled queue points...
+    {
+        return true;    //Everyone doesn't want to be Hale
+    }
+    else
+        return false;
+}
+
+stock RandomNextHale(bool:array[], bool:disconnect=true)
+{
+    if (!disconnect) CPrintToChatAll("{olive}[VSH]{default} Noone wants to be Hale, choosing one randomly!");
+
+    new tBoss = -1;
+    new bool:spec = GetConVarBool(cvarForceSpecToHale);
+
+    do  //Choose a random Hale
+    {
+        tBoss = GetRandomInt(1, MaxClients);
+    }
+    while (!IsValidClient(tBoss) || array[tBoss] || Hale == tBoss || !(GetClientTeam(tBoss) > _:TFTeam_Spectator || (spec && GetClientTeam(tBoss) != _:TFTeam_Unassigned)));
+
+    return tBoss;
+}
+
+stock FindNextHaleEx()
+{
+    new bool:added[MAXPLAYERS + 1];
+
+    if (Hale >= 0)
+    {
+        added[Hale] = true;
+    }
+
+    return FindNextHale(added);
+}
+
+stock ForceTeamWin(team)
+{
+    new ent = FindEntityByClassname2(-1, "team_control_point_master");
+
+    if (ent == -1)
+    {
+        ent = CreateEntityByName("team_control_point_master");
+        DispatchSpawn(ent);
+        AcceptEntityInput(ent, "Enable");
+    }
+
+    SetVariantInt(team);
+    AcceptEntityInput(ent, "SetWinner");
+}
+
+stock AttachParticle(ent, String:particleType[], Float:offset = 0.0, bool:battach = true)
+{
+    new particle = CreateEntityByName("info_particle_system");
+
+    decl String:tName[128];
+    decl Float:pos[3];
+
+    GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
+
+    pos[2] += offset;
+
+    TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+
+    Format(tName, sizeof(tName), "target%i", ent);
+
+    DispatchKeyValue(ent, "targetname", tName);
+    DispatchKeyValue(particle, "targetname", "tf2particle");
+    DispatchKeyValue(particle, "parentname", tName);
+    DispatchKeyValue(particle, "effect_name", particleType);
+    DispatchSpawn(particle);
+
+    SetVariantString(tName);
+
+    if (battach)
+    {
+        AcceptEntityInput(particle, "SetParent", particle, particle, 0);
+        SetEntPropEnt(particle, Prop_Send, "m_hOwnerEntity", ent);
+    }
+
+    ActivateEntity(particle);
+    AcceptEntityInput(particle, "start");
+
+    return particle;
+}
+
+stock SpawnWeapon(client, String:name[], index, level, qual, String:att[])
+{
+    new Handle:hWeapon = TF2Items_CreateItem(OVERRIDE_ALL | FORCE_GENERATION);
+
+    if (hWeapon == INVALID_HANDLE)
+    {
+        return -1;
+    }
+
+    TF2Items_SetClassname(hWeapon, name);
+    TF2Items_SetItemIndex(hWeapon, index);
+    TF2Items_SetLevel(hWeapon, level);
+    TF2Items_SetQuality(hWeapon, qual);
+
+    new String:atts[32][32];
+    new count = ExplodeString(att, " ; ", atts, 32, 32);
+
+    if (count > 0)
+    {
+        TF2Items_SetNumAttributes(hWeapon, count / 2);
+
+        new i2 = 0;
+
+        for (new i = 0; i < count; i += 2)
+        {
+            TF2Items_SetAttribute(hWeapon, i2, StringToInt(atts[i]), StringToFloat(atts[i + 1]));
+            i2++;
+        }
+    }
+    else
+    {
+        TF2Items_SetNumAttributes(hWeapon, 0);
+    }
+
+    new entity = TF2Items_GiveNamedItem(client, hWeapon);
+
+    CloseHandle(hWeapon);
+    EquipPlayerWeapon(client, entity);
+
+    return entity;
+}
+
+stock bool:CheckHaleToggle(client)  //If true, client cannot become Hale
+{
+    if (!IsValidClient(client))
+    {
+        return true;
+    }
+
+    if (IsFakeClient(client) || !AreClientCookiesCached(client))
+    {
+        return false;
+    }
+
+    decl String:strCookie[32];
+
+    GetClientCookie(client, ToggleCookie, strCookie, sizeof(strCookie));
+
+    if (strCookie[0] == 0)
+    {
+        return false;   //If the cookie doesn't exist yet, they can still become Hale
+    }
+    else
+    {
+        return bool:StringToInt(strCookie);
+    }
 }
 
 stock FindVersionData(Handle:panel, versionindex)
@@ -13398,313 +13608,6 @@ stock FindVersionData(Handle:panel, versionindex)
     }
 }
 
-public HelpPanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select)
-    {
-        return;
-    }
-}
-
-public Action:HelpPanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    HelpPanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:HelpPanel(client)
-{
-    if (!Enabled2 || IsVoteInProgress())
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[512];
-
-    SetGlobalTransTarget(client);
-
-    Format(s, 512, "%t", "vsh_help_mode");
-    DrawPanelItem(panel, s);
-
-    Format(s, 512, "%t", "vsh_menu_exit");
-    DrawPanelItem(panel, s);
-
-    SendPanelToClient(panel, client, HelpPanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public Action:HelpPanel2Cmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    if (client == Hale)
-    {
-        HintPanel(Hale);
-    }
-    else
-    {
-        HelpPanel2(client);
-    }
-    
-    return Plugin_Handled;
-}
-
-public Action:HelpPanel2(client)
-{
-    if (!Enabled2 || IsVoteInProgress())
-    {
-        return Plugin_Continue;
-    }
-
-    decl String:s[512];
-
-    new TFClassType:class = TF2_GetPlayerClass(client);
-
-    SetGlobalTransTarget(client);
-
-    switch (class)
-    {
-        case TFClass_Scout:
-            Format(s, 512, "%t", "vsh_help_scout");
-        case TFClass_Soldier:
-            Format(s, 512, "%t", "vsh_help_soldier");
-        case TFClass_Pyro:
-            Format(s, 512, "%t", "vsh_help_pyro");
-        case TFClass_DemoMan:
-            Format(s, 512, "%t", "vsh_help_demo");
-        case TFClass_Heavy:
-            Format(s, 512, "%t", "vsh_help_heavy");
-        case TFClass_Engineer:
-            Format(s, 512, "%t", "vsh_help_eggineer");
-        case TFClass_Medic:
-            Format(s, 512, "%t", "vsh_help_medic");
-        case TFClass_Sniper:
-            Format(s, 512, "%t", "vsh_help_sniper");
-        case TFClass_Spy:
-            Format(s, 512, "%t", "vsh_help_spie");
-        default:
-            Format(s, 512, "");
-    }
-
-    new Handle:panel = CreatePanel();
-
-    if (class != TFClass_Sniper)
-    {
-        Format(s, 512, "%t\n%s", "vsh_help_melee", s);
-    }
-
-    SetPanelTitle(panel, s);
-    DrawPanelItem(panel, "Exit");
-
-    SendPanelToClient(panel, client, HintPanelH, 12);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public Action:ClasshelpinfoCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    ClasshelpinfoSetting(client);
-
-    return Plugin_Handled;
-}
-
-public Action:ClasshelpinfoSetting(client)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the Versus Saxton Hale class info...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, ClasshelpinfoTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Handled;
-}
-
-public ClasshelpinfoTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientCookie(param1, ClasshelpinfoCookie, "0");
-            }
-            else
-            {
-                SetClientCookie(param1, ClasshelpinfoCookie, "1");
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_classinfo", param2 == 2 ? "off":"on");
-        }
-    }
-}
-
-/*public HelpPanelH1(Handle:menu, MenuAction:action, param1, param2)
-{
-if (action == MenuAction_Select)
-{
-if (param2 == 1)
-HelpPanel(param1);
-else if (param2 == 2)
-return;
-}
-}
-public Action:HelpPanel1(client, Args)
-{
-if (!Enabled2)
-return Plugin_Continue;
-new Handle:panel = CreatePanel();
-SetPanelTitle(panel, "Hale is unusually strong.\nBut he doesn't use weapons, because\nhe believes that problems should be\nsolved with bare hands.");
-DrawPanelItem(panel, "Back");
-DrawPanelItem(panel, "Exit");
-SendPanelToClient(panel, client, HelpPanelH1, 9001);
-CloseHandle(panel);
-return Plugin_Continue;
-}*/
-
-public Action:MusicTogglePanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    MusicTogglePanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:MusicTogglePanel(client)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the VS Saxton Hale music...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, MusicTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public MusicTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, false);
-                StopHaleMusic(param1);
-            }
-            else
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, true);
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_music", param2 == 2 ? "off":"on");
-        }
-    }
-}
-
-public Action:VoiceTogglePanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    VoiceTogglePanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:VoiceTogglePanel(client)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the VS Saxton Hale voices...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, VoiceTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public VoiceTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, false);
-            }
-            else
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, true);
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_voice", param2 == 2 ? "off":"on");
-
-            if (param2 == 2)
-            {
-                CPrintToChat(param1, "%t", "vsh_voice2");
-            }
-        }
-    }
-}
-
 /*
 Returns false if multiple fogs are already in the map,
 in which case we won't bother messing with fogs.
@@ -13816,117 +13719,6 @@ stock FogScreen(iClient, const String:sFog[])
     AcceptEntityInput(iClient, "SetFogController");
 }
 
-public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PATH], &entity, &channel, &Float:volume, &level, &pitch, &flags)
-{
-    /*if (Enabled && StrContains(sample, "spy_uncloak", false) != -1)
-    {
-        CPrintToChdata("%s vol: %f", sample, volume);
-        if (IsValidClient(entity))
-        {
-            CPrintToChdata("%N cloak sound", entity);
-        }
-        else
-        {
-            CPrintToChdata("%i ent sound", entity);
-        }
-        strcopy(sample, PLATFORM_MAX_PATH, NueGone);
-        return Plugin_Changed;
-    }*/
-
-    if (!Enabled || ((entity != Hale) && ((entity <= 0) || !IsValidClient(Hale) || (entity != GetPlayerWeaponSlot(Hale, 0)))))
-    {
-        return Plugin_Continue;
-    }
-
-    /*if (bLemonRageActivated && StrContains(sample, "grenade_launcher_shoot", false) != -1)
-    {
-        ReplaceString(sample, PLATFORM_MAX_PATH, "grenade_launcher_shoot", "rocket_shoot", false);
-        return Plugin_Changed;
-    }*/
-
-    if (StrContains(sample, "saxton_hale", false) != -1)
-    {
-        return Plugin_Continue;
-    }
-
-    //Block out the engineer start battlecry
-    if (Special == VSHSpecial_Astro && StrContains(sample, "battlecry", false) != -1)
-    {
-        return Plugin_Handled;
-    }
-
-    if (strcmp(sample, "vo/engineer_LaughLong01.wav", false) == 0)
-    {
-        if (Special != VSHSpecial_Astro)
-        {
-            strcopy(sample, PLATFORM_MAX_PATH, VagineerKSpree);
-
-            return Plugin_Changed;
-        }
-        
-        return Plugin_Handled;
-    }
-
-    if (entity == Hale && Special == VSHSpecial_HHH && strncmp(sample, "vo", 2, false) == 0 && StrContains(sample, "halloween_boss") == -1)
-    {
-        if (GetRandomInt(0, 100) <= 10)
-        {
-            Format(sample, PLATFORM_MAX_PATH, "%s0%i.wav", HHHLaught, GetRandomInt(1, 4));
-
-            return Plugin_Changed;
-        }
-    }
-
-    if (Special != VSHSpecial_CBS && !strncmp(sample, "vo", 2, false) && StrContains(sample, "halloween_boss") == -1)
-    {
-        if (Special == VSHSpecial_Vagineer)
-        {
-            if (StrContains(sample, "engineer_moveup", false) != -1)
-            {
-                Format(sample, PLATFORM_MAX_PATH, "%s%i.wav", VagineerJump, GetRandomInt(1, 2));
-            }
-            else if (StrContains(sample, "engineer_no", false) != -1 || GetRandomInt(0, 9) > 6)
-            {
-                strcopy(sample, PLATFORM_MAX_PATH, "vo/engineer_no01.wav");
-            }
-            else
-            {
-                strcopy(sample, PLATFORM_MAX_PATH, "vo/engineer_jeers02.wav");
-            }
-
-            return Plugin_Changed;
-        }
-
-        if (Special == VSHSpecial_Astro)
-        {
-            strcopy(sample, PLATFORM_MAX_PATH, AstroRandom[GetRandomInt(0, sizeof(AstroRandom)-1)]);
-            return Plugin_Changed;
-        }
-
-        if (Special == VSHSpecial_Bunny)
-        {
-            if (StrContains(sample, "gibberish", false) == -1 && StrContains(sample, "burp", false) == -1 && !GetRandomInt(0, 2))
-            {
-                //Do sound things
-                strcopy(sample, PLATFORM_MAX_PATH, BunnyRandomVoice[GetRandomInt(0, sizeof(BunnyRandomVoice)-1)]);
-
-                return Plugin_Changed;
-            }
-
-            return Plugin_Continue;
-        }
-
-        if (Special == VSHSpecial_Nue && bNueRageActive)
-        {
-            return Plugin_Continue;
-        }
-
-        return Plugin_Handled;
-    }
-
-    return Plugin_Continue;
-}
-
 stock SetAmmo(client, slot, ammo)
 {
     new weapon = GetPlayerWeaponSlot(client, slot);
@@ -14001,234 +13793,6 @@ stock GetHealingTarget(client)
 // 
 //    return true;
 //}
-
-public OnEntityCreated(entity, const String:classname[])
-{
-    if (StrEqual(classname, "item_healthkit_medium"))
-    {
-        //SDKHook(entity, SDKHook_StartTouch, TouchinSandvich);
-        SDKHook(entity, SDKHook_SpawnPost, OnFoodSpawned);
-        CPrintToChdata("sandvich thrown %i", entity);
-    }
-
-    if (Enabled && StrEqual(classname, "tf_projectile_pipe", false) || StrEqual(classname, "tf_projectile_rocket", false))
-    {
-        SDKHook(entity, SDKHook_SpawnPost, OnEggBombSpawned);
-
-        if (Special == VSHSpecial_Cave)
-        {
-            SDKHook(entity, SDKHook_StartTouch, OnLemonTouch);
-        }
-    }
-}
-
-public OnFoodSpawned(iSandvich)
-{
-    new iOwner = GetEntPropEnt(iSandvich, Prop_Data, "m_hOwnerEntity");
-
-    if (iOwner != -1 && iOwner <= MaxClients && IsClientInGame(iOwner) && TF2_GetPlayerClass(iOwner) == TFClass_Heavy)
-    {
-        //SetEntProp(iSandvich, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
-    
-        new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
-
-        switch (idx)
-        {
-            case 42, 863, 1002: // Only steak, chocobar, and fishcake
-            {
-                return;
-            }
-        }
-
-        /*if (idx == 311) // Set the correct model
-        {
-            CPrintToChdata("attempt steak");
-            DispatchKeyValue(iSandvich, "powerup_model", "models/items/plate_steak.mdl");
-            return;
-        }*/
-
-        CreateTimer(0.0, tSetHeavyFooBar, EntIndexToEntRef(iSandvich), TIMER_FLAG_NO_MAPCHANGE);
-    }
-}
-
-public Action:tSetHeavyFooBar(Handle:timer, any:ref)
-{
-    new entity = EntRefToEntIndex(ref);
-
-    CPrintToChdata("attempt remodel %i", entity);
-
-    new iOwner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
-
-    // Fix spellbook thing
-    SetEntPropEnt(iOwner, Prop_Send, "m_hActiveWeapon", GetPlayerWeaponSlot(iOwner, TFWeaponSlot_Melee));
-
-    new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
-
-    decl String:s[PLATFORM_MAX_PATH];
-
-    strcopy(s, PLATFORM_MAX_PATH, 
-        (idx == 159) ? "models/weapons/c_models/c_chocolate/c_chocolate.mdl" : 
-        (idx == 433) ? "models/weapons/c_models/c_fishcake/c_fishcake.mdl" :
-                       "models/items/plate_steak.mdl"
-    );
-
-    if (IsModelPrecached(s) && IsValidEntity(entity))
-    {
-        CPrintToChdata("attempt choco");
-        new att = AttachProjectileModel(entity, s, "idle");
-
-        SetEntProp(att, Prop_Send, "m_nSkin", GetClientTeam(iOwner)-2);
-        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
-        SetEntityRenderColor(entity, 255, 255, 255, 0);
-    }
-}
-
-/*public TouchinSandvich(iHookedEnt, iTouchingEnt)
-{
-    new iOwner = GetEntPropEnt(iHookedEnt, Prop_Data, "m_hOwnerEntity");
-    if(iOwner > 0 && iOwner <= MaxClients && IsClientInGame(iOwner) && TF2_GetPlayerClass(iOwner) == TFClass_Heavy && iOwner == iTouchingEnt)
-    {
-        //Owner is a valid client, so it's not some map spawn.  Now is it a dropped sandvich?
-        // I'd much rather validate this by model, but since that doesnt seem to work for shit (the model returns as the medpack model)
-        // Soooo we'll just see if the client is a heavy
-        // We'll also check if the owner is the player touching it - if it's another player, we dont need to do shit.
-        new newSandvich = CreateEntityByName("item_healthkit_medium");
-
-        if (IsValidEntity(newSandvich))
-        {
-            SetEntProp(iHookedEnt, Prop_Data, "m_bDisabled", 1);    // disable it so it cant get picked up before we kill it
-
-            new Float:pos[3];
-            GetEntPropVector(iHookedEnt, Prop_Send, "m_vecOrigin", pos);    //Grab the location
-            AcceptEntityInput(iHookedEnt, "Kill");  // Kill the old one
-            //new owner = GetEntPropEnt(oldSandvich, Prop_Data, "m_hOwnerEntity");  //Owner
-            //SetEntPropEnt(newSandvich, Prop_Data, "m_hOwnerEntity", owner);   //Set the owner //if we set the owner as the heavy, TF2 does the ammo action crap
-
-            new idx = GetIndexOfWeaponSlot(iOwner, TFWeaponSlot_Secondary);
-
-            decl String:s[PLATFORM_MAX_PATH];
-
-            strcopy(s, PLATFORM_MAX_PATH,
-                (idx == 42)     ? "models/items/plate.mdl" :
-                (idx == 863)    ? "models/items/plate_robo_sandwich.mdl" :
-                (idx == 1002)   ? "models/items/plate_sandwich_xmas.mdl" :
-                (idx == 311)    ? "models/items/plate_steak.mdl" :
-                (idx == 159)    ? "models/weapons/c_models/c_chocolate/c_chocolate.mdl" :
-                                  "models/weapons/c_models/c_fishcake/c_fishcake.mdl"
-            );
-
-            DispatchKeyValue(newSandvich, "powerup_model", s);  // Set the correct model
-            DispatchSpawn(newSandvich); // Spawn the new one
-
-            TeleportEntity(newSandvich, pos, NULL_VECTOR, NULL_VECTOR); // teleport to old one's location
-            CreateTimer(30.0, KillSandvich, newSandvich);
-            g_LastSandvich[iOwner] = newSandvich;
-        }
-    }
-}
-
-public Action:KillSandvich(Handle:hTimer, any:iSandvich)
-{
-    if(IsValidEntity(iSandvich))
-        AcceptEntityInput(iSandvich, "Kill");
-    return Plugin_Continue;
-}  */
-
-public Action:OnLemonTouch(entity, other)
-{
-    // Only continue if the touched prop is a live demonman
-    if (Special != VSHSpecial_Cave || other < 1 || other > MaxClients || !IsClientInGame(other) || !IsPlayerAlive(other) || TF2_GetPlayerClass(other) != TFClass_DemoMan || IsMediUber(other) || GetClientTeam(other) == HaleTeam)
-    {
-        return Plugin_Continue;
-    }
-
-    // This is to detect direct shots VS demomens
-    // So we can break their shields
-
-    new owner;
-
-    decl String:proj[48];
-    GetEdictClassname(entity, proj, sizeof(proj));
-
-    switch (proj[14])
-    {
-        case 'r', 'e': // Rockets
-        {
-            owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-        }
-        case 'p': // Nades
-        {
-            if (proj[18] == 0)
-            {
-                owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-            }
-            else 
-                return Plugin_Continue;
-        }
-    }
-
-    // //Only continue if the attacking prop owner is Cave Johnson
-    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner) || !IsPlayerAlive(owner) || owner != Hale)
-    {
-        return Plugin_Continue;
-    }
-
-    if (owner != other)
-    {
-        Direct[other] = true;   // Only counting direct shots between Hale and a victim
-        DirectTime[other] = GetGameTime();
-    }
-
-    /*
-    Fix idea:
-    Use ontouch. Only first touch will count. Otherwise it's set to not work.
-
-    */
-
-    return Plugin_Continue;
-}
-
-public OnEggBombSpawned(entity)
-{
-    new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-
-    if (IsValidClient(owner) && owner == Hale)
-    {
-        if (Special == VSHSpecial_Bunny)
-            CreateTimer(0.0, Timer_SetEggBomb, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
-        else if (Special == VSHSpecial_Cave)
-            CreateTimer(0.0, Timer_SetLemon, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
-    }
-}
-
-public Action:Timer_SetEggBomb(Handle:timer, any:ref)
-{
-    new entity = EntRefToEntIndex(ref);
-
-    if (FileExists(EggModel) && IsModelPrecached(EggModel) && IsValidEntity(entity))
-    {
-        new att = AttachProjectileModel(entity, EggModel);
-
-        SetEntProp(att, Prop_Send, "m_nSkin", 0);
-        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
-        SetEntityRenderColor(entity, 255, 255, 255, 0);
-    }
-}
-
-public Action:Timer_SetLemon(Handle:timer, any:ref)
-{
-    new entity = EntRefToEntIndex(ref);
-
-    if (FileExists(LemonModel) && IsModelPrecached(LemonModel) && IsValidEntity(entity))
-    {
-        new att = AttachProjectileModel(entity, LemonModel);
-
-        SetEntProp(att, Prop_Send, "m_nSkin", 0);
-        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
-        SetEntityRenderColor(entity, 255, 255, 255, 0);
-    }
-}
-
 
 stock CreateVM(client, String:model[])
 {
@@ -14305,18 +13869,6 @@ stock AttachProjectileModel(entity, String:strModel[], String:strAnim[] = "")
     return -1;
 }
 
-public Action:Hook_CommandSay(client, const String:command[], argc)
-{
-    if (!Enabled) return Plugin_Continue;
-    
-    if (VSHRoundState == 1 && Special == VSHSpecial_Guard && client != Hale)
-    {
-        return Plugin_Handled;
-    }
-    
-    return Plugin_Continue;
-}
-
 stock FindEntityByClassname2(startEnt, const String:classname[])
 {
     /* If startEnt isn't valid shifting it back to the nearest valid one */
@@ -14378,71 +13930,6 @@ stock SetHaleHealthFix(client, health)
 {
     SetEntProp(client, Prop_Send, "m_iHealth", health);
 }
-
-public Native_IsVSHMap(Handle:plugin, numParams)
-{
-    return IsSaxtonHaleMap();
-}
-
-public Native_IsEnabled(Handle:plugin, numParams)
-{
-    return Enabled;
-}
-
-public Native_GetHale(Handle:plugin, numParams)
-{
-    return IsValidClient(Hale) ? GetClientUserId(Hale) : -1;
-}
-
-public Native_IsNueRaging(Handle:plugin, numParams)
-{
-    return bNueRageActive;
-}
-
-public Native_IsCapEnabled(Handle:plugin, numParams)
-{
-    if (VSHRoundState != 1)
-    {
-        return false;
-    }
-
-    return g_bIsCapEnabled;
-}
-
-public Native_GetTeam(Handle:plugin, numParams)
-{
-    return HaleTeam;
-}
-
-public Native_GetSpecial(Handle:plugin, numParams)
-{
-    return Special;
-}
-
-public Native_GetHealth(Handle:plugin, numParams)
-{
-    return HaleHealth;
-}
-
-public Native_GetHealthMax(Handle:plugin, numParams)
-{
-    return HaleHealthMax;
-}
-
-public Native_GetRoundState(Handle:plugin, numParams)
-{
-    return VSHRoundState;
-}
-
-public Native_GetDamage(Handle:plugin, numParams)
-{
-    new iClient = GetNativeCell(1);
-
-    return IsValidClient(iClient) ? Damage[iClient] : 0;
-}
-
-#define MAX_STEAMAUTH_LENGTH 21
-#define STEAMID_CHDATA "STEAM_0:1:41644167"
 
 stock bool:IsClientChdata(client)
 {
