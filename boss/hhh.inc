@@ -15,7 +15,7 @@
 #define HHHAttack               "vo/halloween_boss/knight_attack"
 #define HHHTheme                "ui/holiday/gamestartup_halloween.mp3"
 
-stock HHH_AddToDownloads()
+HHH_AddToDownloads()
 {
     PrecacheModel(HHHModel, true);
 
@@ -26,5 +26,5 @@ stock HHH_AddToDownloads()
     PrecacheSound(HHHRage, true);
     PrecacheSound(HHHRage2, true);
     PrecacheSound(HHHTheme, true);
-    
+
 }

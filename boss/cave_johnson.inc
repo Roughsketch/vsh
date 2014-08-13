@@ -38,7 +38,7 @@ static const String:CaveSpree[][] = {
     "freak_fortress_2/cavejohnson/cavejohnson_rage1.mp3"
 };
 
-stock CaveJohnson_AddToDownloads()
+CaveJohnson_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

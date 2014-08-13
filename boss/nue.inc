@@ -64,7 +64,7 @@ static const String:NueMaterials[][] = {
     "materials/models/player/spy/spy_red_gib.vtf"
 };
 
-stock Nue_AddToDownloads()
+Nue_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

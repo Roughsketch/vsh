@@ -49,7 +49,7 @@ static const String:VagineerFail[][] = {
     "saxton_hale/vagineer_responce_fail_2"
 };
 
-stock Vagineer_AddToDownloads()
+Vagineer_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

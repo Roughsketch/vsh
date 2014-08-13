@@ -32,7 +32,7 @@ static const String:AstroRandom[][] = {
     "saxton_hale/astro/jump.wav"
 };
 
-stock Astronaut_AddToDownloads()
+Astronaut_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

@@ -15,7 +15,7 @@
 #define CBSTheme                "saxton_hale/the_millionaires_holiday.mp3"
 #define CBSJump1                "vo/sniper_specialcompleted02.wav"
 
-stock CBS_AddToDownloads()
+CBS_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

@@ -15,7 +15,7 @@ static const String:GuardianChase[][] = {
     "slender/amnesia/suitorsearch.wav"
 };
 
-stock Guardian_AddToDownloads()
+Guardian_AddToDownloads()
 {
     decl i;
     decl String:s[PLATFORM_MAX_PATH];

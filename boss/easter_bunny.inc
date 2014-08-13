@@ -90,7 +90,7 @@ static const String:BunnyRandomVoice[][] = {
     "vo/burp07.wav"
 };
 
-stock EasterBunny_AddToDownloads()
+EasterBunny_AddToDownloads()
 {
     decl i;
     //decl String:s[PLATFORM_MAX_PATH];
