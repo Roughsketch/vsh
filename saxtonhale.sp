@@ -164,15 +164,7 @@ As Medic, do not deploy ubercharge while Painis is using Hunger, it is as deadly
 //#define REQUIRE_EXTENSIONS
 
 #include "boss/boss"
-
-#define DOWHILE_ENTFOUND(%1,%2) %1 = -1; while ((%1 = FindEntityByClassname2(%1, %2)) != -1)
-
-#define IsValidClient(%1) (0 < %1 && %1 <= MaxClients && IsClientInGame(%1))
-
-#define IsMediUber(%1)  TF2_IsPlayerInCondition(%1, TFCond_Ubercharged)
-#define IsVacUber(%1)   (TF2_IsPlayerInCondition(%1, TFCond_UberBlastResist) || TF2_IsPlayerInCondition(%1, TFCond_UberBulletResist) || TF2_IsPlayerInCondition(%1, TFCond_UberFireResist))
-#define IsQuickUber(%1) TF2_IsPlayerInCondition(%1, TFCond_MegaHeal)
-#define IsAnyUber(%1)   (IsMediUber(%1) || IsVacUber(%1) || IsQuickUber(%1))
+#include "vsh_common"
 
 // Maps to enable trigger_hurt teleport to spawn
 static const String:sTrigger_Teleport[][] = {
@@ -199,9 +191,6 @@ static const String:sTrigger_Teleport[][] = {
 #define PLUGIN_VERSION "34.3"
 
 
-// Target name of master fog.
-new String:g_sMasterFog[64];
-new bool:g_bCanFog;
 
 new Float:iClassSpeeds[10] = {340.0, 400.0, 300.0, 240.0, 280.0, 320.0, 230.0, 300.0, 300.0, 300.0};
 //new iClassBaseHP[10] = {300, 125, 125, 200, 175, 150, 300, 175, 125, 125};
@@ -248,43 +237,23 @@ new Damage[MAXPLAYERS + 1];
 new AirDamage[MAXPLAYERS + 1]; // Air Strike
 new curHelp[MAXPLAYERS + 1];
 new uberTarget[MAXPLAYERS + 1];
-#define VSHFLAG_HELPED          (1 << 0)
-#define VSHFLAG_UBERREADY       (1 << 1)
-#define VSHFLAG_NEEDSTODUCK     (1 << 2)
-#define VSHFLAG_BOTRAGE         (1 << 3)
-#define VSHFLAG_CLASSHELPED     (1 << 4)
-#define VSHFLAG_HASONGIVED      (1 << 5)
-#define VSHFLAG_EQUIPMSG        (1 << 6)
-new VSHFlags[MAXPLAYERS + 1];
 new PrimaryMaxAmmo[MAXPLAYERS + 1];
 new SecondaryMaxAmmo[MAXPLAYERS + 1];
 //new Handle:UberTimers[MAXPLAYERS + 1];
 new Handle:VaccineTimers[MAXPLAYERS + 1] = INVALID_HANDLE;
 new Handle:SandvichTimers[MAXPLAYERS + 1] = INVALID_HANDLE;
 //new Handle:hScheemic_Medibeam = INVALID_HANDLE;
-new Hale = -1;
-new HaleHealthMax;
-new HaleHealth;
-new HaleHealthLast;
-new HaleCharge = 0;
-new HaleRage;
-new NextHale;
-new Float:Stabbed;
-new Float:Marketed;
+
 //new g_LastSandvich[MAXPLAYERS+1] = {-1,...};
 new bool:g_bBzFull[MAXPLAYERS + 1];
 //new g_iTimerTime = 1;
-new HHHClimbCount;
 new bool:PointReady;
 new bool:NoTaunt = false;
 new Float:HPTime;
 new bool:bMedieval;
-new Float:KSpreeTimer;
-new Float:WeighDownTimer;
 new KSpreeCount = 1;
 new Float:UberRageCount;
 new Float:GlowTimer;
-new bool:bEnableSuperDuperJump;
 
 new Handle:cvarVersion;
 new Handle:cvarHaleSpeed;
@@ -304,29 +273,6 @@ new Handle:cvarForceSpecToHale;
 new Handle:cvarForceHaleTeam;
 new Handle:cvarDebugMessages;
 
-/*
-enum cvar
-{
-    Handle:Version;
-    Handle:HaleSpeed;
-    Handle:PointDelay;
-    Handle:RageDMG;
-    Handle:RageDist;
-    Handle:Announce;
-    Handle:Specials;
-    Handle:Enabled;
-    Handle:AliveToEnable;
-    Handle:PointType;
-    Handle:Crits;
-    Handle:RageSentry;
-    Handle:FirstRound;
-    Handle:CircuitStun;
-    Handle:ForceSpecToHale;
-    Handle:ForceHaleTeam;
-    Handle:DebugMessages;
-}
-*/
-
 new Handle:PointCookie;
 new Handle:MusicCookie;
 new Handle:VoiceCookie;
@@ -334,21 +280,17 @@ new Handle:ClasshelpinfoCookie;
 new Handle:ToggleCookie;
 new Handle:ModeCookie;
 new Handle:ChooseCookie; 
+
 new Handle:doorchecktimer;
 new Handle:jumpHUD;
 new Handle:rageHUD;
 new Handle:healthHUD;
 new bool:Enabled = false;
 new bool:Enabled2 = false;
-new bool:HaleSuperJumpStatus;
-new bool:bCaveKillVoice = false;
 new bool:g_bIsCapEnabled = false;
 new Float:HaleSpeed = 340.0;
 new PointDelay = 6;
-new RageDMG = 3500;
-new Float:RageDist = 800.0;
 new Float:Announce = 120.0;
-new bool:bSpecials = true;
 new AliveToEnable = 5;
 new PointType = 0;
 new bool:Direct[MAXPLAYERS + 1];            //True = last shot was a direct shot, False = was not
@@ -357,17 +299,12 @@ new bool:haleCrits = true;
 new bool:newRageSentry = true;
 new Float:circuitStun = 0.0;
 new Handle:MusicTimer;
-new Handle:LemonRageTimer;
-new Handle:CaveKillTimer;
-new bool:bLemonRageActivated = false;
 new Handle:hCapResetDMG;
-new Handle:hHHHTeleTimer;
 new bool:bTenSecStart[2] = {false, false};
 new TeamRoundCounter;
 new botqueuepoints = 0;
 new String:currentmap[99];
 new bool:checkdoors = false;
-new Float:Last2Hu;
 new tf_arena_use_queue;
 new mp_teams_unbalance_limit;
 new tf_arena_first_blood;
@@ -375,8 +312,6 @@ new mp_forcecamera;
 new Float:tf_scout_hype_pep_max;
 new defaulttakedamagetype;
 
-new bNueRageActive = false;
-new bNueBakestaybed = false;
 new g_iJumpMax = 2;
 new g_iJumps[MAXPLAYERS + 1] = 0;
 
@@ -619,7 +554,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
     MarkNativeAsOptional("PbSetString");
     MarkNativeAsOptional("PbAddString");
 
-    CreateNative("VSH_IsNueRaging", Native_IsNueRaging);
+    CreateNative("VSH_IsNueRaging", Nue_Native_IsRageActive);
     CreateNative("VSH_IsCapEnabled", Native_IsCapEnabled);
     CreateNative("VSH_IsSaxtonHaleModeMap", Native_IsVSHMap);
     CreateNative("VSH_IsSaxtonHaleModeEnabled", Native_IsEnabled);
@@ -1017,13 +952,17 @@ public OnConfigsExecuted()
 
 public OnMapStart()
 {
-    g_bCanFog = InitFogs();
+    //g_bCanFog = InitFogs();
+    Guardian_Initialize();
 
     HPTime = 0.0;
     KSpreeTimer = 0.0;
     MusicTimer = INVALID_HANDLE;
-    LemonRageTimer = INVALID_HANDLE;
-    CaveKillTimer = INVALID_HANDLE;
+    
+    //LemonRageTimer = INVALID_HANDLE;
+    //CaveKillTimer = INVALID_HANDLE;
+    CaveJohnson_ResetTimers();
+
     TeamRoundCounter = 0;
     doorchecktimer = INVALID_HANDLE;
     Hale = -1;
@@ -1595,16 +1534,14 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
         MusicTimer = INVALID_HANDLE;
     }
 
-    if (LemonRageTimer != INVALID_HANDLE)
+    if (CaveJohnson_GetRageTimer() != INVALID_HANDLE)
     {
-        KillTimer(LemonRageTimer);
-        LemonRageTimer = INVALID_HANDLE;
+        CaveJohnson_ResetRageTimer();
     }
 
-    if (CaveKillTimer != INVALID_HANDLE)
+    if (CaveJohnson_GetKillTimer() != INVALID_HANDLE)
     {
-        KillTimer(CaveKillTimer);
-        CaveKillTimer = INVALID_HANDLE;
+        CaveJohnson_ResetKillTimer();
     }
 
     if (hCapResetDMG != INVALID_HANDLE)
@@ -1613,10 +1550,9 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
         hCapResetDMG = INVALID_HANDLE;
     }
 
-    if (hHHHTeleTimer != INVALID_HANDLE)
+    if (HHH_GetTeleTimer() != INVALID_HANDLE)
     {
-        KillTimer(hHHHTeleTimer);
-        hHHHTeleTimer = INVALID_HANDLE;
+        HHH_ResetTeleTimer();
     }
 
     /*if (hScheemic_Medibeam != INVALID_HANDLE)
@@ -1830,11 +1766,11 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     Stabbed = 0.0;
     Marketed = 0.0;
     //g_iTimerTime = 1;
-    HHHClimbCount = 0;
+    HHH_SetClimbCount(0);
     PointReady = false;
-    bLemonRageActivated = false;
-    bNueRageActive = false;
-    bNueBakestaybed = false;
+    CaveJohnson_SetLemonRage(false);
+    Nue_SetRageActive(false);
+    Nue_SetBackstabbed(false);
     g_bIsCapEnabled = false;
     HaleSuperJumpStatus = false;
 
@@ -1962,7 +1898,7 @@ public numHaleKills = 0;    //See if the Hale was boosting his buddies or afk
 
 public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    bNueRageActive = false;
+    Nue_SetRageActive(false);
     //bNue_Is_Scout = false;
 
     new String:s[265];
@@ -2917,8 +2853,8 @@ public Action:MakeModelTimer(Handle:hTimer)
 
 EquipSaxton(client)
 {
-    bLemonRageActivated = false;
-    bNueRageActive = false;
+    CaveJohnson_SetLemonRage(false);
+    Nue_SetRageActive(false);
     //bNue_Is_Scout = false;
     bEnableSuperDuperJump = false;
     new SaxtonWeapon;
@@ -3044,7 +2980,7 @@ public Action:MakeHale(Handle:hTimer)
 
     if (Special == VSHSpecial_Guard)
     {
-        FogScreen(Hale, "fog_data");
+        Guardian_FogScreen(Hale, "fog_data");
         SetEntityRenderMode(Hale, RENDER_TRANSTEXTURE);
         SetEntityRenderColor(Hale, 20, 20, 20, 150);
         SetClientListeningFlags(Hale, VOICE_MUTED);
@@ -3856,7 +3792,7 @@ public Action:MakeNoHale(Handle:hTimer, any:clientid)
 
     if (Special == VSHSpecial_Guard)
     {
-        FogScreen(client, "fog_data");
+        Guardian_FogScreen(client, "fog_data");
 
         RestrictToMelee(client);
 
@@ -4306,7 +4242,7 @@ public Action:Command_GetHP(client)
             }
             case VSHSpecial_Nue:
             {
-                if (!bNueRageActive)
+                if (!Nue_IsRageActive())
                 {
                     PrintCenterTextAll("%t", "vsh_nue_hp", HaleHealth, HaleHealthMax);
                     CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_nue_hp", HaleHealth, HaleHealthMax);
@@ -4359,7 +4295,7 @@ public Action:Command_GetHP(client)
     }
     else
     {
-        if (!bNueRageActive)
+        if (!Nue_IsRageActive())
         {
             CPrintToChat(client, "{olive}[VSH]{default} %t", (Special == VSHSpecial_Nue) ? "vsh_wait_her_hp" : "vsh_wait_hp", RoundFloat(HPTime - GetGameTime()), HaleHealthLast);
         }
@@ -4435,8 +4371,8 @@ public Action:Command_MakeNextSpecial(client, args)
 #endif
     else if (StrContains(arg, "gua", false) != -1 || StrContains(arg, "sha", false) != -1)
     {
-        Incoming = g_bCanFog ? VSHSpecial_Guard : VSHSpecial_Guard;
-        name = g_bCanFog ? "the Guardian" : "Saxton Hale";
+        Incoming = Guardian_CanFog() ? VSHSpecial_Guard : VSHSpecial_Guard;
+        name = Guardian_CanFog() ? "the Guardian" : "Saxton Hale";
     }
     else
     {
@@ -5304,7 +5240,7 @@ public Action:ClientTimer(Handle:hTimer)
                 {
                     if (!(GetClientButtons(client) & IN_SCORE))
                     {
-                        if (!bNueRageActive)
+                        if (!Nue_IsRageActive())
                         {
                             ShowSyncHudText(client, rageHUD, "Damage: %d - %N's Damage: %d", Damage[client], obstarget, Damage[obstarget]);
                         }
@@ -5326,7 +5262,7 @@ public Action:ClientTimer(Handle:hTimer)
 
             if (!(GetClientButtons(client) & IN_SCORE))
             {
-                if (!bNueRageActive)
+                if (!Nue_IsRageActive())
                 {
                     ShowSyncHudText(client, rageHUD, "Damage: %d", Damage[client]);
                 }
@@ -5714,7 +5650,7 @@ public Action:HaleTimer(Handle:hTimer)
         TF2_RemoveCondition(Hale, TFCond_MarkedForDeath);
     }
 
-    if (!bNueRageActive && TF2_IsPlayerInCondition(Hale, TFCond_Disguised))
+    if (!Nue_IsRageActive() && TF2_IsPlayerInCondition(Hale, TFCond_Disguised))
     {
         TF2_RemoveCondition(Hale, TFCond_Disguised);
     }
@@ -5738,7 +5674,7 @@ public Action:HaleTimer(Handle:hTimer)
 
     if (Special == VSHSpecial_Nue)
     {
-        if (!bNueRageActive)
+        if (!Nue_IsRageActive())
         {
             SetEntPropFloat(Hale, Prop_Send, "m_flCloakMeter", -100.0);
             
@@ -5793,9 +5729,9 @@ public Action:HaleTimer(Handle:hTimer)
 
     new Float:speed = HaleSpeed + 0.7 * (100 - HaleHealth * 100 / HaleHealthMax);
 
-    if (Special == VSHSpecial_Cave && bLemonRageActivated) speed = 80.0; ///= 3.0; 80.0 is sniper scope / cow mangler speed
+    if (Special == VSHSpecial_Cave && CaveJohnson_GetLemonRage()) speed = 80.0; ///= 3.0; 80.0 is sniper scope / cow mangler speed
 
-    if (Special == VSHSpecial_Nue && bNueRageActive && TF2_IsPlayerInCondition(Hale, TFCond_Disguised) && !TF2_IsPlayerInCondition(Hale, TFCond_Cloaked))
+    if (Special == VSHSpecial_Nue && Nue_IsRageActive() && TF2_IsPlayerInCondition(Hale, TFCond_Disguised) && !TF2_IsPlayerInCondition(Hale, TFCond_Cloaked))
     {
         new TFClassType:iNueDisguise = TFClassType:GetEntProp(Hale, Prop_Send, "m_nDisguiseClass");
 
@@ -6015,7 +5951,7 @@ public Action:HaleTimer(Handle:hTimer)
                     if (TF2_GetPlayerClass(target) != TFClass_Scout && TF2_GetPlayerClass(target) != TFClass_Soldier)
                     {
                         SetEntProp(Hale, Prop_Send, "m_CollisionGroup", 2); //Makes HHH clipping go away for player and some projectiles
-                        hHHHTeleTimer = CreateTimer(bEnableSuperDuperJump ? 4.0:2.0, HHHTeleTimer, TIMER_FLAG_NO_MAPCHANGE);
+                        HHH_StartTeleTimer();
                     }
 
                     GetClientAbsOrigin(target, pos);
@@ -6036,7 +5972,7 @@ public Action:HaleTimer(Handle:hTimer)
 
                         new Handle:timerpack;
 
-                        CreateDataTimer(0.2, Timer_StunHHH, timerpack, TIMER_FLAG_NO_MAPCHANGE);
+                        CreateDataTimer(0.2, HHH_TimerStun, timerpack, TIMER_FLAG_NO_MAPCHANGE);
                         WritePackCell(timerpack, bEnableSuperDuperJump);
                         WritePackCell(timerpack, GetClientUserId(target));
                     }
@@ -6148,7 +6084,7 @@ public Action:HaleTimer(Handle:hTimer)
                 PrintCenterTextAll("%t", "vsh_astro_hp", HaleHealth, HaleHealthMax);
             case VSHSpecial_Nue:
             {
-                if (!bNueRageActive)
+                if (!Nue_IsRageActive())
                 {
                     PrintCenterTextAll("%t", "vsh_nue_hp", HaleHealth, HaleHealthMax);
                 }
@@ -6183,13 +6119,13 @@ public Action:HaleTimer(Handle:hTimer)
         }
     }
 
-    if (!(GetEntityFlags(Hale) & FL_ONGROUND) && !bLemonRageActivated)
+    if (!(GetEntityFlags(Hale) & FL_ONGROUND) && !CaveJohnson_GetLemonRage())
     {
         WeighDownTimer += 0.2;
     }
     else
     {
-        HHHClimbCount = 0;
+        HHH_SetClimbCount(0);
         WeighDownTimer = 0.0;
     }
 
@@ -6225,34 +6161,6 @@ public Action:HaleTimer(Handle:hTimer)
     }
 
     return Plugin_Continue;
-}
-
-public Action:HHHTeleTimer(Handle:timer)
-{
-    SetEntProp(Hale, Prop_Send, "m_CollisionGroup", 5); //Fix HHH's clipping.
-    hHHHTeleTimer = INVALID_HANDLE;
-}
-
-public Action:Timer_StunHHH(Handle:timer, Handle:pack)
-{
-    if (!IsValidClient(Hale))
-    {
-        return;
-    }
-
-    ResetPack(pack);
-
-    new superduper = ReadPackCell(pack);
-    new targetid = ReadPackCell(pack);
-    new target = GetClientOfUserId(targetid);
-
-    if (!IsValidClient(target))
-    {
-        target = 0;
-    }
-
-    VSHFlags[Hale] &= ~VSHFLAG_NEEDSTODUCK;
-    TF2_StunPlayer(Hale, (superduper ? 4.0:2.0), 0.0, TF_STUNFLAGS_GHOSTSCARE | TF_STUNFLAG_NOSOUNDOREFFECT, target);
 }
 
 public Action:Timer_BotRage(Handle:timer)
@@ -6638,7 +6546,7 @@ public Action:cdVoiceMenu(iClient, const String:sCommand[], iArgc)
 
     if (sCmd1[0] == '0' && sCmd2[0] == '0' && IsPlayerAlive(iClient) && iClient == Hale)
     {
-        if (!bNueRageActive && (HaleRage / RageDMG >= 1))
+        if (!Nue_IsRageActive() && (HaleRage / RageDMG >= 1))
         {
             DoTaunt(iClient, "", 0);
             return Plugin_Handled;
@@ -6745,7 +6653,7 @@ public Action:DoTaunt(client, const String:command[], argc)
                 //SetEntProp(Hale, Prop_Send, "m_CollisionGroup", 10); //Makes Nue clipping go away for 2 = player/projectiles | 10 += bullets
 
                 DisguiseNue(client);
-                bNueRageActive = true;
+                Nue_SetRageActive(true);
 
                 CreateTimer(0.0, UseRage, dist);
             }
@@ -6759,8 +6667,7 @@ public Action:DoTaunt(client, const String:command[], argc)
                 SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", SaxtonWeapon); //54 ; 0.6 //4 ; 7.5
                 //SpawnWeapon(client, "tf_weapon_rocketlauncher", 18, 64, 5, "37 ; 0.0 ; 68 ; 2.0 ; 259 ; 1.0 ; 318 ; 0.5 ; 181 ; 1 ; 208 ; 1 ; 252 ; 0.7 ; 4 ; 8.0 ; 22 ; 1 ; 527 ; 1 ; 6 ; 0.25 ; 103 ; 2.0 ; 1 ; 0.4 ; 209 ; 1")
                 SetEntProp(SaxtonWeapon, Prop_Data, "m_iClip1", 99);
-                bLemonRageActivated = true;
-                CreateTimer(0.1, UseLemonRage);
+                CaveJohnson_SetLemonRage(true);
             }
             case VSHSpecial_Vagineer:
             {
@@ -7053,30 +6960,6 @@ public Action:UseBowRage(Handle:hTimer)
     return Plugin_Continue;
 }
 
-public Action:UseLemonRage(Handle:hTimer)
-{
-    if (!GetEntProp(Hale, Prop_Send, "m_bIsReadyToHighFive") && !IsValidEntity(GetEntPropEnt(Hale, Prop_Send, "m_hHighFivePartner")))
-    {
-        TF2_RemoveCondition(Hale, TFCond_Taunting);
-        MakeModelTimer(INVALID_HANDLE); // should reset Hale's animation
-    }
-
-    if (LemonRageTimer != INVALID_HANDLE) KillTimer(LemonRageTimer);
-    LemonRageTimer = CreateTimer(5.0, EndLemonRage); //4.6
-
-    return Plugin_Continue;
-}
-
-public Action:EndLemonRage(Handle:hTimer)
-{
-    TF2_RemoveWeaponSlot2(Hale, TFWeaponSlot_Primary);
-    new SaxtonWeapon = SpawnWeapon(Hale, "tf_weapon_grenadelauncher", 19, 64, 5, "37 ; 0.0 ; 68 ; 2.0 ; 259 ; 1.0 ; 318 ; 0.5 ; 207 ; 0.0 ; 208 ; 1 ; 252 ; 0.7 ; 1 ; 0.9 ; 3 ; 0.75 ; 5 ; 1.1 ; 22 ; 1 ; 527 ; 1");
-    SetEntPropEnt(Hale, Prop_Send, "m_hActiveWeapon", SaxtonWeapon);
-    SetAmmo(Hale, TFWeaponSlot_Primary, 999);
-    bLemonRageActivated = false;
-    LemonRageTimer = INVALID_HANDLE;
-    return Plugin_Continue;
-}
 
 /*public Action:event_player_death_backstab(Handle:event, const String:name[], bool:dontBroadcast)
 {
@@ -7117,7 +7000,10 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         SDKUnhook(client, SDKHook_PreThinkPost, OnPreThinkPost);
     }
 
-    if (client == Hale) bNueRageActive = false;
+    if (client == Hale)
+    {
+        Nue_SetRageActive(false);
+    }
 
     if (attacker == Hale && Special == VSHSpecial_Bunny && VSHRoundState == 1)
     {
@@ -7144,7 +7030,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         return Plugin_Continue;
     }
 
-    if (Special == VSHSpecial_Nue && VSHRoundState > 0 && !bNueRageActive && Last2Hu != GetGameTime())
+    if (Special == VSHSpecial_Nue && VSHRoundState > 0 && !Nue_IsRageActive() && Nue_GetLastKillTime() != GetGameTime())
     {
         decl Float:vPos[3];
         GetEntPropVector(client, Prop_Send, "m_vecOrigin", vPos);
@@ -7152,7 +7038,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         strcopy(s, PLATFORM_MAX_PATH, Death2hu);
         EmitSoundToAll(s, _, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, _, vPos, NULL_VECTOR, false, 0.0);
 
-        Last2Hu = GetGameTime(); // Don't play the sound more than once when slaying multiple players at the same time
+        Nue_SetLastKillTime(GetGameTime()); // Don't play the sound more than once when slaying multiple players at the same time
     }
 
     /*if (bNueRageActive && attacker == Hale)
@@ -7347,7 +7233,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
             }
             case VSHSpecial_Nue:
             {
-                if (!bNueRageActive)
+                if (!Nue_IsRageActive())
                 {
                     Nue_RandomKill(s, PLATFORM_MAX_PATH);
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
@@ -7361,13 +7247,13 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
                     SetEventString(event, "weapon", "firedeath");
                 }
 
-                if (!bCaveKillVoice && RedAlivePlayers > 2)
+                if (!CaveJohnson_GetKillVoice() && RedAlivePlayers > 2)
                 {
                     new iVoice = CaveJohnson_RandomSpree(s, PLATFORM_MAX_PATH);
                     EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     EmitSoundToAll(s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, attacker, NULL_VECTOR, NULL_VECTOR, false, 0.0);
-                    bCaveKillVoice = true;
-                    CaveKillTimer = CreateTimer(iVoice == 1 ? 12.0 : 6.0, EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE);
+                    CaveJohnson_SetKillVoice(true);
+                    CaveJohnson_SetKillTimer(CreateTimer(iVoice == 1 ? 12.0 : 6.0, CaveJohnson_EndCaveKillTimer, TIMER_FLAG_NO_MAPCHANGE));
                     //iVoice == 0 ? 5.0 : iVoice == 1 ? 11.0 : ? iVoice == 2 : 2.0 : 3.0
                 }
             }
@@ -7515,13 +7401,6 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         }
     }
 
-    return Plugin_Continue;
-}
-
-public Action:EndCaveKillTimer(Handle:hTimer)
-{
-    bCaveKillVoice = false;
-    CaveKillTimer = INVALID_HANDLE;
     return Plugin_Continue;
 }
 
@@ -8031,7 +7910,7 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
         bChanged = true;
         if (iDmgCustom == TF_CUSTOM_BACKSTAB)
         {
-            if (!bNueRageActive)
+            if (!Nue_IsRageActive())
             {
                 iDmgType &= ~DMG_CRIT;
                 flDamage = 202.0;
@@ -8039,12 +7918,12 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
             else
             {
                 iDmgType |= DMG_CRIT;
-                bNueBakestaybed = true;
+                Nue_SetBackstabbed(true);
             }
         }
         else // if (bNueRageActive)
         {
-            if (!bNueRageActive)
+            if (!Nue_IsRageActive())
             {
                 flDamage = 202.0;
             }
@@ -8052,12 +7931,12 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
             {
                 flDamage = 120.0;
             }
-            bNueBakestaybed = false;
+            Nue_SetBackstabbed(false);
         }
     }
 
     // Battalion's Backup Buff
-    if (TF2_IsPlayerInCondition(iVictim, TFCond_DefenseBuffed) && !bNueBakestaybed)
+    if (TF2_IsPlayerInCondition(iVictim, TFCond_DefenseBuffed) && !Nue_IsBackstabbed())
     {
         ScaleVector(vDmgForce, 9.0);
         flDamage *= 0.3;
@@ -8075,7 +7954,7 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
     }
 
     // Phlog during CritMmmph
-    if (TF2_IsPlayerInCondition(iVictim, TFCond_CritMmmph) && !bNueBakestaybed)
+    if (TF2_IsPlayerInCondition(iVictim, TFCond_CritMmmph) && !Nue_IsBackstabbed())
     {
         flDamage *= 0.25;
 
@@ -8141,7 +8020,7 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
     }
 
     // Break shield on all hits, or direct lemons.
-    if ((!bNueRageActive && !bNueBakestaybed) && (Special != VSHSpecial_Cave || (Direct[iVictim] && DirectTime[iVictim] == GetGameTime())))
+    if ((!Nue_IsRageActive() && !Nue_IsBackstabbed()) && (Special != VSHSpecial_Cave || (Direct[iVictim] && DirectTime[iVictim] == GetGameTime())))
     {
         new ent;
 
@@ -8193,7 +8072,7 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
         }
     }
 
-    if (IsIndexActive(iVictim, 312) && GetEntProp(GetPlayerWeaponSlot(iVictim, TFWeaponSlot_Primary), Prop_Send, "m_iWeaponState") >= 2 && !bNueBakestaybed)
+    if (IsIndexActive(iVictim, 312) && GetEntProp(GetPlayerWeaponSlot(iVictim, TFWeaponSlot_Primary), Prop_Send, "m_iWeaponState") >= 2 && !Nue_IsBackstabbed())
     {
         flDamage *= 0.5; // Brass beast has 50% damage reduction while deployed
         return Plugin_Changed;
@@ -8382,7 +8261,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                     {
                         case 14, 201, 664, 792, 801, 851, 881, 890, 899, 908, 957, 966:
                         {
-                            if (VSHRoundState != 2 && !bNueRageActive)
+                            if (VSHRoundState != 2 && !Nue_IsRageActive())
                             {
                                 new Float:chargelevel = (IsValidEntity(iWeapon) && iWeapon > MaxClients ? GetEntPropFloat(iWeapon, Prop_Send, "m_flChargedDamage"):0.0);
                                 new Float:time = (GlowTimer > 10 ? 1.0:2.0);
@@ -9153,7 +9032,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
         return Plugin_Continue;
     }
 
-    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && client == Hale && HHHClimbCount <= 9 && VSHRoundState > 0)
+    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && client == Hale && HHH_GetClimbCount() < HHH_MAX_CLIMB_COUNT && VSHRoundState > 0)
     {
         new index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
 
@@ -9161,15 +9040,15 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
         {
             SickleClimbWalls(client);
             WeighDownTimer = 0.0;
-            HHHClimbCount++;
+            HHH_IncClimbCount();
         }
     }
 
     if (client == Hale)
     {
-        if (Special == VSHSpecial_Nue && bNueRageActive)
+        if (Special == VSHSpecial_Nue && Nue_IsRageActive())
         {
-            bNueBakestaybed = false;
+            Nue_SetBackstabbed(false);
             CreateTimer(0.0, Timer_CheckNueRageStab, EntIndexToEntRef(client), TIMER_FLAG_NO_MAPCHANGE);
         }
 
@@ -9214,9 +9093,9 @@ public Action:Timer_CheckBazaar(Handle:timer, any:ref)
 public Action:Timer_CheckNueRageStab(Handle:timer, any:ref) 
 {
     new client = EntRefToEntIndex(ref);
-    if (!bNueBakestaybed)
+    if (!Nue_IsBackstabbed())
     {
-        bNueRageActive = false;
+        Nue_SetRageActive(false);
 
         decl Float:pos[3];
         GetEntPropVector(client, Prop_Send, "m_vecOrigin", pos);
@@ -10486,7 +10365,7 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
             return Plugin_Continue;
         }
 
-        if (Special == VSHSpecial_Nue && bNueRageActive)
+        if (Special == VSHSpecial_Nue && Nue_IsRageActive())
         {
             return Plugin_Continue;
         }
@@ -10751,11 +10630,6 @@ public Native_GetHale(Handle:plugin, numParams)
     return IsValidClient(Hale) ? GetClientUserId(Hale) : -1;
 }
 
-public Native_IsNueRaging(Handle:plugin, numParams)
-{
-    return bNueRageActive;
-}
-
 public Native_IsCapEnabled(Handle:plugin, numParams)
 {
     if (VSHRoundState != 1)
@@ -10996,37 +10870,58 @@ stock bool:CheckNextSpecial()
         {
             switch (Incoming)
             {
+#if defined VAGINEER_ON
                 case 1:
                     Incoming = VSHSpecial_Vagineer;
+#endif
+#if defined HHH_ON
                 case 2:
                     Incoming = VSHSpecial_HHH;
+#endif
+#if defined CBS_ON
                 case 3:
                     Incoming = VSHSpecial_CBS;
+#endif
 #if defined EASTER_BUNNY_ON
                 case 4: // 64
                     Incoming = VSHSpecial_Bunny;
 #endif
+#if defined CAVE_JOHNSON_ON
                 case 5:
                     Incoming = bMedieval ? VSHSpecial_Hale : VSHSpecial_Cave;
+#endif
+#if defined NUE_HOUJUU_ON
                 case 6:
                     Incoming = VSHSpecial_Nue;
+#endif
+#if defined ASTRONAUT_ON
                 case 7:
                     Incoming = VSHSpecial_Astro;
+#endif
+#if defined GUARDIAN_ON
                 case 666:
-                    Incoming = g_bCanFog ? VSHSpecial_Guard : VSHSpecial_Hale;
+                    Incoming = Guardian_CanFog() ? VSHSpecial_Guard : VSHSpecial_Hale;
+#endif
                 default:
                     Incoming = VSHSpecial_Hale;
             }
+
+#if defined CBS_ON
             if (IsDate(12, 15) && !GetRandomInt(0, 7)) //IsDecemberHoliday()
             {
                 CPrintToChatAll("{olive}[VSH]{default} It's like Christmas morning!");
                 Incoming = VSHSpecial_CBS;
             }
+#endif
+
+#if defined HHH_ON
             if (IsDate(10, 15) && !GetRandomInt(0, 7)) //IsHalloweenHoliday()
             {
                 CPrintToChatAll("{olive}[VSH]{default} Happy Halloween!");
                 Incoming = VSHSpecial_HHH;
             }
+#endif
+            
 #if defined EASTER_BUNNY_ON
             if (IsDate(3, 25, 4, 20) && !GetRandomInt(0, 7)) //IsEasterHoliday()
             {
@@ -12109,6 +12004,7 @@ stock GetClassBaseHP(client)
     return 125;
 }
 
+/*
 stock GetSpellBook(client)
 {
     new ent = -1;
@@ -12118,6 +12014,7 @@ stock GetSpellBook(client)
     }
     return -1;
 }
+*/
 
 stock SpawnManyAmmoPacks(client, String:model[], skin = 0, num = 14, Float:offsz = 30.0)
 {
@@ -12366,6 +12263,7 @@ stock SetDecapitations(client, decaps)
     SetEntProp(client, Prop_Send, "m_iDecapitations", decaps);
 }
 
+/*
 stock SwitchToOtherWeapon(client)
 {
     new ammo = GetAmmo(client, 0);
@@ -12381,6 +12279,7 @@ stock SwitchToOtherWeapon(client)
         SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary));
     }
 }
+*/
 
 stock RestrictToMelee(iClient) //bool:bSpawnNewMelee = false
 {
@@ -13611,117 +13510,6 @@ stock FindVersionData(Handle:panel, versionindex)
     }
 }
 
-/*
-Returns false if multiple fogs are already in the map,
-in which case we won't bother messing with fogs.
-
-*/
-stock bool:InitFogs()
-{
-    new iEnt;
-    new bool:bFoundMaster = false;     // Does a master fog exist?
-    new bool:bFoundCustom = false;     // Does a custom fog exist?
-    new iExtraFogs = 0;                // How many miscellaneous fogs have been found. First one is set to master, usually.
-
-    DOWHILE_ENTFOUND(iEnt, "env_fog_controller")            // m_spawnflags
-    {
-        decl String:sFog[64];
-        GetEntPropString(iEnt, Prop_Data, "m_iName", sFog, sizeof(sFog));
-
-        new iSpawnFlags = GetEntProp(iEnt, Prop_Data, "m_spawnflags");
-
-        // If the plugin had to be reloaded, this helps avoid creating extraneous fogs
-        if (iSpawnFlags & 1)
-        {
-            strcopy(g_sMasterFog, sizeof(g_sMasterFog), sFog);
-
-            if (g_sMasterFog[0] == 0)
-            {
-                DispatchKeyValue(iEnt, "targetname", "fog_master");
-                strcopy(g_sMasterFog, sizeof(g_sMasterFog), "fog_master");
-            }
-
-            bFoundMaster = true;
-            continue;
-        }
-        else if (StrEqual(sFog, "fog_data"))
-        {
-            bFoundCustom = true;
-            continue;
-        }
-
-        if (++iExtraFogs > 1)   // The first unmarked fog will become the master, so it's safe to continue
-        {
-            return false;       // Stop the process
-        }
-
-        // This assumes that the first fog we touch will always be the one that was meant to be the master.
-        // I don't know if this is accurate for custom maps.
-        // This code is reached while a fog is found, but we haven't set our flag saying we found one
-        if (!bFoundMaster) 
-        {
-            strcopy(g_sMasterFog, sizeof(g_sMasterFog), sFog);
-
-            if (g_sMasterFog[0] == 0)                               // If it had no name...
-            {
-                DispatchKeyValue(iEnt, "targetname", "fog_master");
-                strcopy(g_sMasterFog, sizeof(g_sMasterFog), "fog_master");
-            }
-
-            decl String:sSpawnFlags[8];
-
-            IntToString((iSpawnFlags|1), sSpawnFlags, sizeof(sSpawnFlags));
-
-            DispatchKeyValue(iEnt, "spawnflags", sSpawnFlags);   // If there's already a fog controller, set it to master
-
-            bFoundMaster = true;
-        }
-    }
-
-    // End DOWHILE
-
-    // If there was no fog at all in the map, this is ran to create a master fog
-    if (!bFoundMaster)
-    {
-        iEnt = CreateEntityByName("env_fog_controller");
-        DispatchSpawn(iEnt);
-
-        DispatchKeyValue(iEnt, "spawnflags", "1");          // Set new fog to master
-        DispatchKeyValue(iEnt, "fogenable", "0");           // The map originally had no fog, so keep this one disabled
-        DispatchKeyValue(iEnt, "targetname", "fog_master");
-        strcopy(g_sMasterFog, sizeof(g_sMasterFog), "fog_master");
-    }
-
-    if (!bFoundCustom)   // If we haven't created a custom fog yet...  (OnMapStart is re-ran if the plugin is reloaded/loaded midgame)
-    {
-        iEnt = CreateEntityByName("env_fog_controller");        // Make a second fog with custom effects for this mod
-        DispatchSpawn(iEnt);
-
-        DispatchKeyValue(iEnt, "spawnflags", "0");              // Fog is not master
-        DispatchKeyValue(iEnt, "fogenable", "1");               // Enable this fog
-        DispatchKeyValue(iEnt, "targetname", "fog_data");       // Important, so we can switch clients to this fog later
-
-        DispatchKeyValue(iEnt, "fogmaxdensity", "1");
-        DispatchKeyValue(iEnt, "fogstart", "0");
-        DispatchKeyValue(iEnt, "fogend", "300");                // How far away you can see 350
-        DispatchKeyValue(iEnt, "fogdir", "1 0 0");
-        DispatchKeyValue(iEnt, "fogcolor", "2 2 6");
-        DispatchKeyValue(iEnt, "fogcolor2", "6 2 2");
-        DispatchKeyValue(iEnt, "fogblend", "1");                // Should turn out to be a dark fog
-        DispatchKeyValue(iEnt, "farz", "-1");
-        DispatchKeyValue(iEnt, "use_angles", "1");
-        DispatchKeyValue(iEnt, "angles", "0 270 0");
-    }
-
-    return true;
-}
-
-stock FogScreen(iClient, const String:sFog[])
-{
-    SetVariantString(sFog);
-    AcceptEntityInput(iClient, "SetFogController");
-}
-
 stock SetAmmo(client, slot, ammo)
 {
     new weapon = GetPlayerWeaponSlot(client, slot);
@@ -13797,6 +13585,7 @@ stock GetHealingTarget(client)
 //    return true;
 //}
 
+/*
 stock CreateVM(client, String:model[])
 {
     new ent = CreateEntityByName("tf_wearable_vm");
@@ -13821,7 +13610,7 @@ stock CreateVM(client, String:model[])
 
     return ent;
 }
-
+*/
 // Moved to tf2_stocks.inc
 /*stock TF2_EquipWearable(client, entity)
 {

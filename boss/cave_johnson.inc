@@ -17,6 +17,12 @@
 #define CaveStab                "tf2data/cave/cave_cough.wav"
 #define CaveWin                 "portal2/cavejohnson/we_are_done_here1.wav"
 
+
+static bool:bCaveKillVoice = false;
+static Handle:hLemonRageTimer;
+static Handle:hCaveKillTimer;
+static bool:bLemonRageActivated = false;
+
 static const String:CaveStart[][] = {
     "portal2/cavejohnson/eighties_outro11_part2.wav",
     "portal2/cavejohnson/fifties_intro04v2.wav",
@@ -116,4 +122,103 @@ stock CaveJohnson_RandomSpree(String:str[], max_size)
     strcopy(str, max_size, CaveSpree[random]);
     
     return random;
+}
+
+stock CaveJohnson_ResetTimers()
+{
+    hLemonRageTimer = INVALID_HANDLE;
+    hCaveKillTimer = INVALID_HANDLE;
+}
+
+stock Handle:CaveJohnson_GetRageTimer()
+{
+    return hLemonRageTimer;
+}
+
+stock CaveJohnson_SetRageTimer(Handle:value)
+{
+    hLemonRageTimer = value;
+}
+
+stock Handle:CaveJohnson_GetKillTimer()
+{
+    return hCaveKillTimer;
+}
+
+stock CaveJohnson_SetKillTimer(Handle:value)
+{
+    hCaveKillTimer = value;
+}
+
+stock CaveJohnson_ResetRageTimer()
+{
+    KillTimer(hLemonRageTimer);
+    hLemonRageTimer = INVALID_HANDLE;
+}
+
+stock CaveJohnson_ResetKillTimer()
+{
+    KillTimer(hCaveKillTimer);
+    hCaveKillTimer = INVALID_HANDLE;
+}
+
+stock bool:CaveJohnson_GetLemonRage()
+{
+    return bLemonRageActivated;
+}
+
+stock CaveJohnson_SetLemonRage(bool:value)
+{
+    bLemonRageActivated = value;
+
+    if (bLemonRageActivated == true)
+    {
+        CreateTimer(0.1, CaveJohnson_UseLemonRage);
+    }
+}
+
+public Action:CaveJohnson_UseLemonRage(Handle:hTimer)
+{
+    if (!GetEntProp(Hale, Prop_Send, "m_bIsReadyToHighFive") && !IsValidEntity(GetEntPropEnt(Hale, Prop_Send, "m_hHighFivePartner")))
+    {
+        TF2_RemoveCondition(Hale, TFCond_Taunting);
+        MakeModelTimer(INVALID_HANDLE); // should reset Hale's animation
+    }
+
+    if (CaveJohnson_GetRageTimer() != INVALID_HANDLE)
+    {
+        CaveJohnson_ResetRageTimer();
+    }
+
+    CaveJohnson_SetRageTimer(CreateTimer(5.0, CaveJohnson_EndLemonRage)); //4.6
+
+    return Plugin_Continue;
+}
+
+public Action:CaveJohnson_EndLemonRage(Handle:hTimer)
+{
+    TF2_RemoveWeaponSlot2(Hale, TFWeaponSlot_Primary);
+    new SaxtonWeapon = SpawnWeapon(Hale, "tf_weapon_grenadelauncher", 19, 64, 5, "37 ; 0.0 ; 68 ; 2.0 ; 259 ; 1.0 ; 318 ; 0.5 ; 207 ; 0.0 ; 208 ; 1 ; 252 ; 0.7 ; 1 ; 0.9 ; 3 ; 0.75 ; 5 ; 1.1 ; 22 ; 1 ; 527 ; 1");
+    SetEntPropEnt(Hale, Prop_Send, "m_hActiveWeapon", SaxtonWeapon);
+    SetAmmo(Hale, TFWeaponSlot_Primary, 999);
+    CaveJohnson_SetLemonRage(false);
+    CaveJohnson_SetRageTimer(INVALID_HANDLE);
+    return Plugin_Continue;
+}
+
+stock bool:CaveJohnson_GetKillVoice()
+{
+    return bCaveKillVoice;
+}
+
+stock CaveJohnson_SetKillVoice(bool:value)
+{
+    bCaveKillVoice = value;
+}
+
+public Action:CaveJohnson_EndCaveKillTimer(Handle:hTimer)
+{
+    CaveJohnson_SetKillVoice(false);
+    CaveJohnson_SetKillTimer(INVALID_HANDLE);
+    return Plugin_Continue;
 }

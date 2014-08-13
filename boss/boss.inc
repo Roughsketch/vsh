@@ -1,3 +1,5 @@
+#include "vsh_common"
+
 
 #define HALE_JUMPCHARGETIME 1
 #define HALE_JUMPCHARGE (25 * HALE_JUMPCHARGETIME)
@@ -42,6 +44,34 @@
 #define HaleKillKSpree132       "saxton_hale/saxton_hale_132_kspree_"    //1-2
 #define HaleKillLast132         "saxton_hale/saxton_hale_132_last.wav"
 #define HaleStubbed132          "saxton_hale/saxton_hale_132_stub_"  //1-4
+
+//  Global hale-related variables
+new Hale = -1;
+new HaleHealthMax;
+new HaleHealth;
+new HaleHealthLast;
+new HaleCharge = 0;
+new HaleRage;
+new NextHale;
+new Float:Stabbed;
+new Float:Marketed;
+new Float:KSpreeTimer;
+new Float:WeighDownTimer;
+new bool:bEnableSuperDuperJump;
+new bool:HaleSuperJumpStatus;
+new RageDMG = 3500;
+new Float:RageDist = 800.0;
+new bool:bSpecials = true;
+
+new VSHFlags[MAXPLAYERS + 1];
+
+#define VSHFLAG_HELPED          (1 << 0)
+#define VSHFLAG_UBERREADY       (1 << 1)
+#define VSHFLAG_NEEDSTODUCK     (1 << 2)
+#define VSHFLAG_BOTRAGE         (1 << 3)
+#define VSHFLAG_CLASSHELPED     (1 << 4)
+#define VSHFLAG_HASONGIVED      (1 << 5)
+#define VSHFLAG_EQUIPMSG        (1 << 6)
 
 
 #if !defined DISABLE_BOSS_VAGINEER

@@ -1,6 +1,6 @@
 Moved all boss defines and statics to their own .inc files
 
-Creates boss.inc which holds default Saxton's defines as well as conditional includes for other bosses
+Created boss.inc which holds default Saxton's defines as well as conditional includes for other bosses
     To disable a boss simply define DISABLE_BOSS_(Boss name) before including boss.inc
     For example:
         #define DISABLE_BOSS_HHH
@@ -15,4 +15,9 @@ Changed a lot of logic in the AddToDownload function
     Adding boss files to downloads now handled in (Boss name)_AddToDownloads
 
 Added the ability to disable previously standard special bosses (vagineer, cbs, hhh)
+
 Added ifdef checks around portions that are related to special bosses to make excluding them easier (for example, if something breaks)
+
+Moved all boss related globals to their own include files.
+
+Most boss variables turned into statics and given accessors and mutators in place of a globally accessable name.

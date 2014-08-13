@@ -15,6 +15,11 @@
 #define HHHAttack               "vo/halloween_boss/knight_attack"
 #define HHHTheme                "ui/holiday/gamestartup_halloween.mp3"
 
+#define HHH_MAX_CLIMB_COUNT 10
+
+static Handle:hHHHTeleTimer;
+static iHHHClimbCount;
+
 HHH_AddToDownloads()
 {
     PrecacheModel(HHHModel, true);
@@ -27,4 +32,68 @@ HHH_AddToDownloads()
     PrecacheSound(HHHRage2, true);
     PrecacheSound(HHHTheme, true);
 
+}
+
+stock HHH_GetClimbCount()
+{
+    return iHHHClimbCount;
+}
+
+stock HHH_SetClimbCount(value)
+{
+    iHHHClimbCount = value;
+}
+
+stock HHH_IncClimbCount()
+{
+    iHHHClimbCount++;
+}
+
+stock Handle:HHH_GetTeleTimer()
+{
+    return hHHHTeleTimer;
+}
+
+stock HHH_SetTeleTimer(Handle:value)
+{
+    hHHHTeleTimer = value;
+}
+
+stock HHH_ResetTeleTimer()
+{
+    KillTimer(hHHHTeleTimer);
+    hHHHTeleTimer = INVALID_HANDLE;
+}
+
+stock HHH_StartTeleTimer()
+{
+    CreateTimer(bEnableSuperDuperJump ? 4.0:2.0, HHH_TeleTimer, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action:HHH_TeleTimer(Handle:timer)
+{
+    SetEntProp(Hale, Prop_Send, "m_CollisionGroup", 5); //Fix HHH's clipping.
+    hHHHTeleTimer = INVALID_HANDLE;
+}
+
+public Action:HHH_TimerStun(Handle:timer, Handle:pack)
+{
+    if (!IsValidClient(Hale))
+    {
+        return;
+    }
+
+    ResetPack(pack);
+
+    new superduper = ReadPackCell(pack);
+    new targetid = ReadPackCell(pack);
+    new target = GetClientOfUserId(targetid);
+
+    if (!IsValidClient(target))
+    {
+        target = 0;
+    }
+
+    VSHFlags[Hale] &= ~VSHFLAG_NEEDSTODUCK;
+    TF2_StunPlayer(Hale, (superduper ? 4.0:2.0), 0.0, TF_STUNFLAGS_GHOSTSCARE | TF_STUNFLAG_NOSOUNDOREFFECT, target);
 }

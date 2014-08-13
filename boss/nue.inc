@@ -16,6 +16,10 @@
 #define Death2hu               "freak_fortress_2/touhou/touhou_pichuun.wav"
 #define NueMusic               "tf2data/nue/wicked_child.mp3"
 
+static Float:fLastKill;
+static bNueRageActive = false;
+static bNueBackstabbed = false;
+
 static const String:NueJump[][] = {
     "tf2data/nue/fh47vo1_1.wav",
     "tf2data/nue/fh47vo1_2.wav",
@@ -156,4 +160,39 @@ stock Nue_RandomKill(String:str[], max_size)
     strcopy(str, max_size, NueKill[random]);
     
     return random;
+}
+
+stock Nue_IsRageActive()
+{
+    return bNueRageActive;
+}
+
+public Nue_Native_IsRageActive(Handle:plugin, numParams)
+{
+    return bNueRageActive;
+}
+
+stock Nue_SetRageActive(bool:value)
+{
+    bNueRageActive = value;
+}
+
+stock Nue_IsBackstabbed()
+{
+    return bNueBackstabbed;
+}
+
+stock Nue_SetBackstabbed(bool:value)
+{
+    bNueBackstabbed = value;
+}
+
+stock Float:Nue_GetLastKillTime()
+{
+    return fLastKill;
+}
+
+stock Nue_SetLastKillTime(Float:value)
+{
+    fLastKill = value;
 }
