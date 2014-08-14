@@ -163,8 +163,9 @@ As Medic, do not deploy ubercharge while Painis is using Hunger, it is as deadly
 #include <steamtools>
 //#define REQUIRE_EXTENSIONS
 
-#include "boss/boss"
 #include "vsh_common"
+#include "boss/boss"
+#include "panel"        //  Panel must be included after boss.inc
 
 // Maps to enable trigger_hurt teleport to spawn
 static const String:sTrigger_Teleport[][] = {
@@ -183,59 +184,16 @@ static const String:sTrigger_Teleport[][] = {
 //};
 
 
-// Max Entities
-#define ME 2048
-#define EF_BONEMERGE            (1 << 0)
-#define EF_BONEMERGE_FASTCULL   (1 << 7)
-
-#define PLUGIN_VERSION "34.3"
-
-
-
 new Float:iClassSpeeds[10] = {340.0, 400.0, 300.0, 240.0, 280.0, 320.0, 230.0, 300.0, 300.0, 300.0};
 //new iClassBaseHP[10] = {300, 125, 125, 200, 175, 150, 300, 175, 125, 125};
 
-#define SOUNDEXCEPT_MUSIC       0
-#define SOUNDEXCEPT_VOICE       1
 
 #if defined _steamtools_included
 new bool:steamtools = false;
 #endif
 
-new OtherTeam = 2;
-new HaleTeam = 3;
-new VSHRoundState = -1;
-new playing;
-new healthcheckused;
-new RedAlivePlayers;
-new RoundCount;
-new Special;
-new Incoming;
-
-enum
-{
-    VSHSpecial_None = -1,
-    VSHSpecial_Hale,
-    VSHSpecial_Vagineer,
-    VSHSpecial_HHH,
-    VSHSpecial_CBS,
-    VSHSpecial_Bunny, //ohgodwhy
-    VSHSpecial_Cave,  //5
-    VSHSpecial_Nue,   //6
-    VSHSpecial_Astro,
-    VSHSpecial_Guard
-}
-
-enum
-{
-    mode_normal = 2,
-    mode_hard,
-    mode_lunatic
-}
-
 new Damage[MAXPLAYERS + 1];
 new AirDamage[MAXPLAYERS + 1]; // Air Strike
-new curHelp[MAXPLAYERS + 1];
 new uberTarget[MAXPLAYERS + 1];
 new PrimaryMaxAmmo[MAXPLAYERS + 1];
 new SecondaryMaxAmmo[MAXPLAYERS + 1];
@@ -273,38 +231,27 @@ new Handle:cvarForceSpecToHale;
 new Handle:cvarForceHaleTeam;
 new Handle:cvarDebugMessages;
 
-new Handle:PointCookie;
-new Handle:MusicCookie;
-new Handle:VoiceCookie;
-new Handle:ClasshelpinfoCookie;
-new Handle:ToggleCookie;
-new Handle:ModeCookie;
-new Handle:ChooseCookie; 
 
+new bool:checkdoors = false;
 new Handle:doorchecktimer;
 new Handle:jumpHUD;
 new Handle:rageHUD;
 new Handle:healthHUD;
-new bool:Enabled = false;
-new bool:Enabled2 = false;
+new Handle:MusicTimer;
+new Handle:hCapResetDMG;
+
 new bool:g_bIsCapEnabled = false;
-new Float:HaleSpeed = 340.0;
 new PointDelay = 6;
 new Float:Announce = 120.0;
-new AliveToEnable = 5;
+new AliveToEnable;
 new PointType = 0;
 new bool:Direct[MAXPLAYERS + 1];            //True = last shot was a direct shot, False = was not
 new Float:DirectTime[MAXPLAYERS + 1];       //Game frame the hit was occured
-new bool:haleCrits = true;
 new bool:newRageSentry = true;
 new Float:circuitStun = 0.0;
-new Handle:MusicTimer;
-new Handle:hCapResetDMG;
 new bool:bTenSecStart[2] = {false, false};
 new TeamRoundCounter;
-new botqueuepoints = 0;
-new String:currentmap[99];
-new bool:checkdoors = false;
+new String:g_sCurrentMap[99];
 new tf_arena_use_queue;
 new mp_teams_unbalance_limit;
 new tf_arena_first_blood;
@@ -315,7 +262,6 @@ new defaulttakedamagetype;
 new g_iJumpMax = 2;
 new g_iJumps[MAXPLAYERS + 1] = 0;
 
-new g_iHaleMode = mode_normal;
 
 #define PLAYERCOND_SPYCLOAK (1<<4)
 
@@ -330,205 +276,6 @@ new bool:g_bClientRJFlag[MAXPLAYERS+1] = { false, ... };
 new bool:bBazaarHit[MAXPLAYERS + 1] = { false, ... };
 //new bool:g_bClientAirBlastFlag[MAXPLAYERS+1] = { false, ... };
 
-static const String:haleversiontitles[][] =     //the last line of this is what determines the displayed plugin version
-{
-    "1.0",
-    "1.1",
-    "1.11",
-    "1.12",
-    "1.2",
-    "1.22",
-    "1.23",
-    "1.24",
-    "1.25",
-    "1.26",
-    "Christian Brutal Sniper",
-    "1.28",
-    "1.29",
-    "1.30",
-    "1.31",
-    "1.32",
-    "1.33",
-    "1.34",
-    "1.35",
-    "1.35_3",
-    "1.36",
-    "1.36",
-    "1.36",
-    "1.36",
-    "1.36",
-    "1.36",
-    "1.362",
-    "1.363",
-    "1.364",
-    "1.365",
-    "1.366",
-    "1.367",
-    "1.368",
-    "1.369",
-    "1.369",
-    "1.369",
-    "1.37",
-    "1.37b",    //15 Nov 2011
-    "1.38",
-    "1.38",
-    "1.39beta",
-    "1.39beta",
-    "1.39beta",
-    "1.39c",
-    "1.39c",
-    "1.39c",
-    "1.40",
-    "1.41",
-    "1.42",
-    "0x01",
-    "0x01",
-    "0x01",
-    "0x02",
-    "0x02",
-    "0x03",
-    "0x04",
-    "0x04",
-    "0x05",
-    "0x06",
-    "0x07",
-    "0x08",
-    "0x09",
-    "0x0A",
-    "0x0B",
-    "0x0C",
-    "0x0D",
-    "0x0E",
-    "0x0F",
-    "0x10",
-    "0x11",
-    "0x11",
-    "0x12",
-    "0x12",
-    "0x13",
-    "0x14",
-    "0x15",
-    "0x16",
-    "0x17",
-    "0x18",
-    "0x19",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.0",
-    "34.1",
-    "34.1",
-    "34.1",
-    "34.1",
-    "34.2",
-    "34.3",
-    "34.3"
-};
-static const String:haleversiondates[][] =
-{
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "--",
-    "25 Aug 2011",
-    "26 Aug 2011",
-    "09 Oct 2011",
-    "09 Oct 2011",
-    "09 Oct 2011",
-    "15 Nov 2011",
-    "15 Nov 2011",
-    "17 Dec 2011",
-    "17 Dec 2011",
-    "05 Mar 2012",
-    "05 Mar 2012",
-    "05 Mar 2012",
-    "16 Jul 2012",
-    "16 Jul 2012",
-    "16 Jul 2012",
-    "10 Oct 2012",
-    "25 Feb 2013",
-    "30 Mar 2013",
-    "05 Nov 2013",
-    "05 Nov 2013",
-    "05 Nov 2013",
-    "10 Nov 2013",
-    "10 Nov 2013",
-    "13 Nov 2013",
-    "16 Nov 2013",
-    "16 Nov 2013",
-    "17 Nov 2013",
-    "24 Nov 2013",
-    "25 Nov 2013",
-    "26 Nov 2013",
-    "01 Dec 2013",
-    "10 Dec 2013",
-    "14 Dec 2013",
-    "18 Dec 2013",
-    "18 Dec 2013",
-    "20 Dec 2013",
-    "21 Dec 2013",
-    "22 Dec 2013",
-    "04 Jan 2014",
-    "05 Jan 2014",
-    "07 Jan 2014",
-    "07 Jan 2014",
-    "09 Jan 2014",
-    "10 Jan 2014",
-    "11 Jan 2014",
-    "11 Jan 2014",
-    "13 Jan 2014",
-    "18 Feb 2014",
-    "05 Apr 2014",
-    "04 Aug 2014",
-    "04 Aug 2014",
-    "04 Aug 2014",
-    "04 Aug 2014",
-    "04 Aug 2014",
-    "19 Jul 2014",
-    "19 Jul 2014",
-    "17 Jul 2014",
-    "10 Jul 2014",
-    "07 Aug 2014",
-    "05 Aug 2014",
-    "05 Aug 2014",
-    "05 Aug 2014",
-    "09 Aug 2014",
-    "11 Aug 2014",
-    "11 Aug 2014"
-};
-static const maxversion = (sizeof(haleversiontitles)-1);
 new Handle:OnHaleJump;
 new Handle:OnHaleRage;
 new Handle:OnHaleWeighdown;
@@ -613,9 +360,12 @@ InitGamedata()
 
 public OnPluginStart()
 {
+    decl String:sLatestTitle[100];
+    Common_GetLatestTitle(sLatestTitle, 100);
+
     InitGamedata();
-    LogMessage("===Versus Saxton Hale Initializing - %s===", haleversiontitles[maxversion]);
-    cvarVersion = CreateConVar("hale_version", haleversiontitles[maxversion], "VS Saxton Hale Version", FCVAR_NOTIFY | FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_DONTRECORD);
+    LogMessage("===Versus Saxton Hale Initializing - %s===", sLatestTitle);
+    cvarVersion = CreateConVar("hale_version", sLatestTitle, "VS Saxton Hale Version", FCVAR_NOTIFY | FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_DONTRECORD);
     cvarHaleSpeed = CreateConVar("hale_speed", "340.0", "Speed of Saxton Hale", FCVAR_PLUGIN);
     cvarPointType = CreateConVar("hale_point_type", "0", "Select condition to enable point (0 - alive players, 1 - time)", FCVAR_PLUGIN, true, 0.0, true, 1.0);
     cvarPointDelay = CreateConVar("hale_point_delay", "6", "Addition (for each player) delay before point's activation.", FCVAR_PLUGIN);
@@ -733,13 +483,9 @@ public OnPluginStart()
     RegAdminCmd("sm_hale_cap_disable", Command_Point_Disable, ADMFLAG_CHEATS, "Disable CP. Only with hale_point_type = 0");
     RegAdminCmd("sm_hale_stop_music", Command_StopMusic, ADMFLAG_CHEATS, "Stop any currently playing Boss music.");
     AutoExecConfig(true, "SaxtonHale");
-    PointCookie = RegClientCookie("hale_queuepoints1", "Amount of VSH Queue points player has", CookieAccess_Protected);
-    MusicCookie = RegClientCookie("hale_music_setting", "HaleMusic setting", CookieAccess_Public);
-    VoiceCookie = RegClientCookie("hale_voice_setting", "HaleVoice setting", CookieAccess_Public);
-    ToggleCookie = RegClientCookie("hale_toggle_setting", "HaleToggle setting", CookieAccess_Public);
-    ModeCookie = RegClientCookie("hale_difficulty_setting", "HaleMode setting", CookieAccess_Public);
-    ChooseCookie = RegClientCookie("hale_bosspick", "omg player selected hales!", CookieAccess_Protected);  
-    ClasshelpinfoCookie = RegClientCookie("hale_classinfo", "HaleClassinfo setting", CookieAccess_Public);
+
+    Panel_InitCookies();
+
     jumpHUD = CreateHudSynchronizer();
     rageHUD = CreateHudSynchronizer();
     healthHUD = CreateHudSynchronizer();
@@ -863,12 +609,15 @@ public OnConfigsExecuted()
     decl String:oldversion[64];
     GetConVarString(cvarVersion, oldversion, sizeof(oldversion));
 
-    if (strcmp(oldversion, haleversiontitles[maxversion], false) != 0)
+    decl String:sLatestTitle[100];
+    Common_GetLatestTitle(sLatestTitle, 100);
+
+    if (strcmp(oldversion, sLatestTitle, false) != 0)
     {
         LogError("[VS Saxton Hale] Warning: your config may be outdated. Back up your tf/cfg/sourcemod/SaxtonHale.cfg file and delete it, and this plugin will generate a new one that you can then modify to your original values.");
     }
 
-    SetConVarString(FindConVar("hale_version"), haleversiontitles[maxversion]);
+    SetConVarString(FindConVar("hale_version"), sLatestTitle);
     HaleSpeed = GetConVarFloat(cvarHaleSpeed);
     RageDMG = GetConVarInt(cvarRageDMG);
     RageDist = GetConVarFloat(cvarRageDist);
@@ -930,13 +679,13 @@ public OnConfigsExecuted()
         if (steamtools)
         {
             decl String:gameDesc[64];
-            Format(gameDesc, sizeof(gameDesc), "VS Saxton Hale (%s)", haleversiontitles[maxversion]);
+            Format(gameDesc, sizeof(gameDesc), "VS Saxton Hale (%s)", sLatestTitle);
             Steam_SetGameDescription(gameDesc);
         }
 #endif
 
         Enabled = true;
-        Enabled2 = true;
+        Panel_SetEnabled(true);
 
         if (Announce > 1.0)
         {
@@ -945,7 +694,7 @@ public OnConfigsExecuted()
     }
     else
     {
-        Enabled2 = false;
+        Panel_SetEnabled(false);
         Enabled = false;
     }
 }
@@ -985,7 +734,7 @@ public OnMapStart()
 
 public OnMapEnd()
 {
-    if (Enabled2 || Enabled)
+    if (Panel_Enabled() || Enabled)
     {
         SetConVarInt(FindConVar("tf_arena_use_queue"), tf_arena_use_queue);
         SetConVarInt(FindConVar("mp_teams_unbalance_limit"), mp_teams_unbalance_limit);
@@ -1369,12 +1118,15 @@ public CvarChange(Handle:convar, const String:oldValue[], const String:newValue[
     {
         if (GetConVarBool(convar) && IsSaxtonHaleMap())
         {
-            Enabled2 = true;
+            Panel_SetEnabled(true);
 #if defined _steamtools_included
             if (steamtools)
             {
                 decl String:gameDesc[64];
-                Format(gameDesc, sizeof(gameDesc), "VS Saxton Hale (%s)", haleversiontitles[maxversion]);
+                decl String:sLatestTitle[100];
+                Common_GetLatestTitle(sLatestTitle, 100);
+
+                Format(gameDesc, sizeof(gameDesc), "VS Saxton Hale (%s)", sLatestTitle);
                 Steam_SetGameDescription(gameDesc);
             }
 #endif
@@ -1386,7 +1138,13 @@ public Action:Timer_Announce(Handle:hTimer)
 {
     static announcecount = -1;
     announcecount++;
-    if (Announce > 1.0 && Enabled2)
+
+    decl String:sLatestTitle[100];
+    decl String:sLatestDate[100];
+    Common_GetLatestTitle(sLatestTitle, 100);
+    Common_GetLatestDate(sLatestDate, 100);
+
+    if (Announce > 1.0 && Panel_Enabled())
     {
         switch (announcecount)
         {
@@ -1396,11 +1154,11 @@ public Action:Timer_Announce(Handle:hTimer)
             }
             case 2:
             {
-                CPrintToChatAll("{olive}[VSH]{default} VSH:Data {olive}v%s{default} brought to you by {olive}TF2Data{default}.", haleversiontitles[maxversion]);
+                CPrintToChatAll("{olive}[VSH]{default} VSH:Data {olive}v%s{default} brought to you by {olive}TF2Data{default}.", sLatestTitle);
             }
             case 3:
             {
-                CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_last_update", haleversiontitles[maxversion], haleversiondates[maxversion]);
+                CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_last_update", sLatestTitle, sLatestDate);
             }
             case 4:
             {
@@ -1508,15 +1266,15 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     if (!GetConVarBool(cvarEnabled))
     {
 /*#if defined _steamtools_included
-        if (Enabled2 && steamtools)
+        if (Panel_Enabled() && steamtools)
         {
             Steam_SetGameDescription("Team Fortress");
         }
 #endif*/
-        Enabled2 = false;
+        Panel_SetEnabled(false);
     }
 
-    Enabled = Enabled2;
+    Enabled = Panel_Enabled();
 
     if (CheckNextSpecial() && !Enabled)
     { //QueuePanelH(Handle:0, MenuAction:0, 9001, 0) is HaleEnabled
@@ -1564,7 +1322,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     KSpreeCount = 0;
 
     CheckArena();
-    GetCurrentMap(currentmap, sizeof(currentmap));
+    GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
 
     new bool:bBluHale;
     new convarsetting = GetConVarInt(cvarForceHaleTeam);
@@ -1579,7 +1337,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
             bBluHale = GetRandomInt(0, 1) == 1;
         default:
         {
-            if (strncmp(currentmap, "vsh_", 4, false) == 0 || strncmp(currentmap, "ctf_", 4, false) == 0 || strncmp(currentmap, "mvm_", 4, false) == 0)
+            if (strncmp(g_sCurrentMap, "vsh_", 4, false) == 0 || strncmp(g_sCurrentMap, "ctf_", 4, false) == 0 || strncmp(g_sCurrentMap, "mvm_", 4, false) == 0)
             {
                 bBluHale = true;
             }
@@ -2274,24 +2032,24 @@ public Action:StartHaleTimer(Handle:hTimer)
         HaleHealthMax = 125;
     }
 
-    g_iHaleMode = CheckClientDifficulty(Hale);
+    iHaleMode = CheckClientDifficulty(Hale);
 
-    if (g_iHaleMode == mode_normal)
+    if (iHaleMode == mode_normal)
     {
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Normal Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
-    else if (g_iHaleMode == mode_hard)
+    else if (iHaleMode == mode_hard)
     {
         CPrintToChatAll("{olive}[VSH]{default} Warning! Time for a Hard Mode round!");
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Hard Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
-    else if (g_iHaleMode == mode_lunatic)
+    else if (iHaleMode == mode_lunatic)
     {
         CPrintToChatAll("{olive}[VSH]{default} Warning! We have an incoming LUNATIC!");
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Lunatic Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
 
-    HaleHealthMax = RoundFloat(float(HaleHealthMax) * ((g_iHaleMode == mode_hard) ? 0.6 : (g_iHaleMode == mode_lunatic) ? 0.35 : 1.0));
+    HaleHealthMax = RoundFloat(float(HaleHealthMax) * ((iHaleMode == mode_hard) ? 0.6 : (iHaleMode == mode_lunatic) ? 0.35 : 1.0));
 
     TF2Attrib_SetByName(Hale, "max health additive bonus", float(HaleHealthMax-GetClassBaseHP(Hale)));
     SetEntityHealth(Hale, HaleHealthMax);
@@ -2299,7 +2057,7 @@ public Action:StartHaleTimer(Handle:hTimer)
     SetEntProp(Hale, Prop_Data, "m_iMaxHealth", HaleHealthMax);
 
     HaleHealth = HaleHealthMax;
-    //HaleHealth = RoundFloat(float(HaleHealth) * ((g_iHaleMode == mode_hard) ? 0.6 : (g_iHaleMode == mode_lunatic) ? 0.35 : 1.0));
+    //HaleHealth = RoundFloat(float(HaleHealth) * ((iHaleMode == mode_hard) ? 0.6 : (iHaleMode == mode_lunatic) ? 0.35 : 1.0));
 
     /*
      Hard mode rage uses:
@@ -2323,7 +2081,7 @@ public Action:StartHaleTimer(Handle:hTimer)
     1/
 
     */
-    if (g_iHaleMode == mode_hard)
+    if (iHaleMode == mode_hard)
     {
         if (playing <= 2)
         {
@@ -2551,34 +2309,6 @@ public Action:Timer_MusicTheme(Handle:timer, any:pack)
     }
 
     return Plugin_Continue;
-}
-
-SetClientSoundOptions(client, excepttype, bool:on)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return;
-    }
-
-    new String:strCookie[32];
-
-    if (on)
-    {
-        strCookie = "1";
-    }
-    else
-    {
-        strCookie = "0";
-    }
-
-    if (excepttype == SOUNDEXCEPT_VOICE)
-    {
-        SetClientCookie(client, VoiceCookie, strCookie);
-    }
-    else
-    {
-        SetClientCookie(client, MusicCookie, strCookie);
-    }
 }
 
 public Action:GottamTimer(Handle:hTimer)
@@ -4397,7 +4127,7 @@ public Action:Command_NextHale(client, args)
 
 public Action:Command_HaleSelect(client, args)
 {
-    if (!Enabled2)
+    if (!Panel_Enabled())
     {
         return Plugin_Continue;
     }
@@ -4432,39 +4162,9 @@ public Action:Command_HaleSelect(client, args)
     return Plugin_Handled;
 }
 
-GetBossCookie(client)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return 0;
-    }
-
-    decl String:setboss[32];
-    GetClientCookie(client, ChooseCookie, setboss, sizeof(setboss));
-
-    if (setboss[0] == 0)
-    {
-        return 0;
-    }
-
-    return StringToInt(setboss);
-}
-
-SetBossCookie(client, boss)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return;
-    }
-
-    decl String:setboss[32];
-    IntToString(boss, setboss, sizeof(setboss));
-    SetClientCookie(client, ChooseCookie, setboss);
-}  
-
 public Action:Command_Points(client, args)
 {
-    if (!Enabled2)
+    if (!Panel_Enabled())
     {
         return Plugin_Continue;
     }
@@ -4600,7 +4300,7 @@ public Action:Command_HaleSetMaxHP(client, args)
 
 public Action:Command_StopMusic(client, args)
 {
-    if (!Enabled2)
+    if (!Panel_Enabled())
     {
         return Plugin_Continue;
     }
@@ -5764,14 +5464,14 @@ public Action:HaleTimer(Handle:hTimer)
     }
 
     SetHaleHealthFix(Hale, HaleHealth);
-    SetHudTextParams(-1.0, (g_iHaleMode == mode_lunatic && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
+    SetHudTextParams(-1.0, (iHaleMode == mode_lunatic && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
     SetGlobalTransTarget(Hale);
     if (!(GetClientButtons(Hale) & IN_SCORE))
     {
         ShowSyncHudText(Hale, healthHUD, "%t", "vsh_health", HaleHealth, HaleHealthMax);
     }
 
-    if (g_iHaleMode != mode_lunatic || Special == VSHSpecial_Nue)
+    if (iHaleMode != mode_lunatic || Special == VSHSpecial_Nue)
     {
         if (Special == VSHSpecial_Nue)
         {
@@ -6562,7 +6262,7 @@ public Action:cdVoiceMenu(iClient, const String:sCommand[], iArgc)
 
 public Action:DoTaunt(client, const String:command[], argc)
 {
-    if (!Enabled || (client != Hale) || TF2_IsPlayerInCondition(Hale, TFCond_Cloaked) || TF2_IsPlayerInCondition(Hale, TFCond_Disguised) || Special == VSHSpecial_Guard || (g_iHaleMode == mode_lunatic && Special != VSHSpecial_Nue)) return Plugin_Continue;
+    if (!Enabled || (client != Hale) || TF2_IsPlayerInCondition(Hale, TFCond_Cloaked) || TF2_IsPlayerInCondition(Hale, TFCond_Disguised) || Special == VSHSpecial_Guard || (iHaleMode == mode_lunatic && Special != VSHSpecial_Nue)) return Plugin_Continue;
 
     if (NoTaunt)
     {
@@ -8451,7 +8151,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         return Plugin_Continue;
                     }
 
-                    if (StrEqual(currentmap, "vsh_dustshowdown_new", false) || StrEqual(currentmap, "vsh_dust_showdown_final1", false))
+                    if (StrEqual(g_sCurrentMap, "vsh_dustshowdown_new", false) || StrEqual(g_sCurrentMap, "vsh_dust_showdown_final1", false))
                     {
                         new medigun = GetPlayerWeaponSlot(iAtker, TFWeaponSlot_Secondary);
                         new Float:charge = GetEntPropFloat(medigun, Prop_Send, "m_flChargeLevel")-0.02;
@@ -8467,7 +8167,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         return Plugin_Continue;
                     }
 
-                    if (StrEqual(currentmap, "vsh_dustshowdown_new", false) || StrEqual(currentmap, "vsh_dust_showdown_final1", false))
+                    if (StrEqual(g_sCurrentMap, "vsh_dustshowdown_new", false) || StrEqual(g_sCurrentMap, "vsh_dust_showdown_final1", false))
                     {
                         new medigun = GetPlayerWeaponSlot(iAtker, TFWeaponSlot_Secondary);
                         new Float:charge = GetEntPropFloat(medigun, Prop_Send, "m_flChargeLevel")-0.05;
@@ -8482,7 +8182,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         return Plugin_Continue;
                     }
 
-                    if (StrEqual(currentmap, "vsh_dustshowdown_new", false) || StrEqual(currentmap, "vsh_dust_showdown_final1", false))
+                    if (StrEqual(g_sCurrentMap, "vsh_dustshowdown_new", false) || StrEqual(g_sCurrentMap, "vsh_dust_showdown_final1", false))
                     {
                         new medigun = GetPlayerWeaponSlot(iAtker, TFWeaponSlot_Secondary);
                         new Float:charge = GetEntPropFloat(medigun, Prop_Send, "m_flChargeLevel")-0.16;
@@ -8497,7 +8197,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         return Plugin_Continue;
                     }
 
-                    if (StrEqual(currentmap, "vsh_dustshowdown_new", false) || StrEqual(currentmap, "vsh_dust_showdown_final1", false))
+                    if (StrEqual(g_sCurrentMap, "vsh_dustshowdown_new", false) || StrEqual(g_sCurrentMap, "vsh_dust_showdown_final1", false))
                     {
                         new medigun = GetPlayerWeaponSlot(iAtker, TFWeaponSlot_Secondary);
                         new Float:charge = GetEntPropFloat(medigun, Prop_Send, "m_flChargeLevel")-0.25;
@@ -8807,7 +8507,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
 
         if (GetEdictClassname(iAtker, s, sizeof(s)) && strcmp(s, "trigger_hurt", false) == 0)
         {
-            new iMapNum = Array_FindString(sTrigger_Teleport, sizeof(sTrigger_Teleport), currentmap);
+            new iMapNum = Array_FindString(sTrigger_Teleport, sizeof(sTrigger_Teleport), g_sCurrentMap);
             if (iMapNum >= 0)
             {
                 // Teleport the boss back to one of the spawns.
@@ -8843,7 +8543,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                 flDamage = flMaxDmg;
             }
 
-            if (StrEqual(currentmap, "ph_cyberpunk_a3", false))
+            if (StrEqual(g_sCurrentMap, "ph_cyberpunk_a3", false))
             {
                 if (HaleCharge >= 0)
                 {
@@ -8918,14 +8618,16 @@ public bool:TraceEntityFilterPlayer(entity, contentsMask)
     return !Client_IsValid(entity);
 }
 
-/*public Action:Timer_RemoveCandycaneHealthPack(Handle:timer, any:ref)
+/*
+public Action:Timer_RemoveCandycaneHealthPack(Handle:timer, any:ref)
 {
-new entity = EntRefToEntIndex(ref);
-if (entity > MaxClients && IsValidEntity(entity))
-{
-AcceptEntityInput(entity, "Kill");
+    new entity = EntRefToEntIndex(ref);
+    if (entity > MaxClients && IsValidEntity(entity))
+    {
+        AcceptEntityInput(entity, "Kill");
+    }
 }
-}*/
+*/
 
 public Action:Timer_StopTickle(Handle:timer, any:userid)
 {
@@ -9175,242 +8877,7 @@ public bool:TraceRayDontHitSelf(entity, mask, any:data)
     return (entity != data);
 }
 
-public HintPanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (!IsValidClient(param1))
-    {
-        return;
-    }
-
-    if (action == MenuAction_Select || (action == MenuAction_Cancel && param2 == MenuCancel_Exit))
-    {
-        VSHFlags[param1] |= VSHFLAG_CLASSHELPED;
-    }
-
-    return;
-}
-
-public Action:HintPanel(client)
-{
-    if (IsVoteInProgress())
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[512];
-
-    SetGlobalTransTarget(client);
-
-    switch (Special)
-    {
-        case VSHSpecial_Guard:
-            Format(s, 512, "%t", "vsh_help_guardian");
-        case VSHSpecial_Hale:
-            Format(s, 512, "%t", "vsh_help_hale");
-        case VSHSpecial_Vagineer:
-            Format(s, 512, "%t", "vsh_help_vagineer");
-        case VSHSpecial_HHH:
-            Format(s, 512, "%t", "vsh_help_hhh");
-        case VSHSpecial_CBS:
-            Format(s, 512, "%t", "vsh_help_cbs");
-        case VSHSpecial_Bunny:
-            Format(s, 512, "%t", "vsh_help_bunny");
-        case VSHSpecial_Cave:
-            Format(s, 512, "%t", "vsh_help_cave");
-        case VSHSpecial_Nue:
-            Format(s, 512, "%t", "vsh_help_nue");
-        case VSHSpecial_Astro:
-            Format(s, 512, "%t", "vsh_help_astro");
-    }
-
-    DrawPanelText(panel, s);
-
-    Format(s, 512, "%t", "vsh_menu_exit");
-    DrawPanelItem(panel, s);
-    SendPanelToClient(panel, client, HintPanelH, 9001);
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public QueuePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select && param2 == 10)
-    {
-        TurnToZeroPanel(param1);
-    }
-
-    return false;
-}
-
-public Action:QueuePanelCmd(client, Args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    QueuePanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:QueuePanel(client)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[512];
-
-    Format(s, 512, "%T", "vsh_thequeue", client);
-    SetPanelTitle(panel, s);
-
-    new bool:added[MAXPLAYERS + 1];
-    new tHale = Hale;
-
-    if (Hale >= 0)
-    {
-        added[Hale] = true;
-    }
-
-    if (!Enabled)
-    {
-        DrawPanelItem(panel, "None");
-    }
-    else if (IsValidClient(tHale))
-    {
-        Format(s, sizeof(s), "%N - %i", tHale, GetClientQueuePoints(tHale));
-        DrawPanelItem(panel, s);
-    }
-    else
-    {
-        DrawPanelItem(panel, "None");
-    }
-
-    new i, pingas, bool:botadded;
-
-    DrawPanelText(panel, "---");
-
-    do
-    {
-        tHale = FindNextHale(added);
-        if (IsValidClient(tHale))
-        {
-            if (client == tHale)
-            {
-                Format(s, 64, "%N - %i", tHale, GetClientQueuePoints(tHale));
-                DrawPanelText(panel, s);
-                i--;
-            }
-            else
-            {
-                if (IsFakeClient(tHale))
-                {
-                    if (botadded)
-                    {
-                        added[tHale] = true;
-                        continue;
-                    }
-
-                    Format(s, 64, "BOT - %i", botqueuepoints);
-                    botadded = true;
-                }
-                else
-                {
-                    Format(s, 64, "%N - %i", tHale, GetClientQueuePoints(tHale));
-                }
-
-                DrawPanelItem(panel, s);
-            }
-
-            added[tHale] = true;
-            i++;
-        }
-
-        pingas++;
-    }
-    while (i < 8 && pingas < 100);
-
-    for (; i < 8; i++)
-    {
-        DrawPanelItem(panel, "");
-    }
-
-    Format(s, 64, "%T %i (%T)", "vsh_your_points", client, GetClientQueuePoints(client), "vsh_to0", client);
-    DrawPanelItem(panel, s);
-    SendPanelToClient(panel, client, QueuePanelH, 9001);
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public TurnToZeroPanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select && param2 == 1)
-    {
-        SetClientQueuePoints(param1, 0);
-        CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_to0_done");
-
-        new cl = FindNextHaleEx();
-
-        if (IsValidClient(cl))
-        {
-            SkipHalePanelNotify(cl);
-        }
-    }
-}
-
-public Action:ResetQueuePointsCmd(client, args)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
-    {
-        TurnToZeroPanel(client);
-    }
-    else
-    {
-        TurnToZeroPanelH(INVALID_HANDLE, MenuAction_Select, client, 1);
-    }
-
-    return Plugin_Handled;
-}
-
-public Action:TurnToZeroPanel(client)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[512];
-
-    SetGlobalTransTarget(client);
-    Format(s, 512, "%t", "vsh_to0_title");
-
-    SetPanelTitle(panel, s);
-    Format(s, 512, "%t", "Yes");
-
-    DrawPanelItem(panel, s);
-    Format(s, 512, "%t", "No");
-
-    DrawPanelItem(panel, s);
-    SendPanelToClient(panel, client, TurnToZeroPanelH, 9001);
-
-    CloseHandle(panel);
-    return Plugin_Continue;
-}
+//  PANELS
 
 public Action:Command_SetHale(client, args)
 {
@@ -9446,823 +8913,6 @@ public Action:Command_SetHale(client, args)
         DisplayMenu(setbossmenu, client, MENU_TIME_FOREVER);
     }
     return Plugin_Handled;
-}
-
-public MenuHandler_SetHale(Handle:menu, MenuAction:action, client, param2)
-{
-    decl String:arg[64];
-    decl String:name[64];
-    GetMenuItem(menu, param2, arg, sizeof(arg));
-    if (action == MenuAction_Select)
-    {
-        switch (--param2)
-        {
-            case VSHSpecial_Hale:
-            {
-                SetBossCookie(client, VSHSpecial_Hale);
-                name = "Saxton Hale";
-            }
-            case VSHSpecial_Vagineer:
-            {
-                SetBossCookie(client, VSHSpecial_Vagineer);
-                name = "The Vagineer";
-            }
-            case VSHSpecial_HHH:
-            {
-                SetBossCookie(client, VSHSpecial_HHH);
-                name = "The Horseless Headless Horsemann Jr.";
-            }
-            case VSHSpecial_CBS:
-            {
-                SetBossCookie(client, VSHSpecial_CBS);
-                name = "The Christian Brutal Sniper";
-            }
-#if defined EASTER_BUNNY_ON
-            case VSHSpecial_Bunny:
-            {
-                SetBossCookie(client, VSHSpecial_Bunny);
-                name = "The Easter Bunny";
-            }
-#endif
-            case VSHSpecial_Cave:
-            {
-                SetBossCookie(client, VSHSpecial_Cave);
-                name = "Cave Johnson";
-            }
-            case VSHSpecial_Nue:
-            {
-                SetBossCookie(client, VSHSpecial_Nue);
-                name = "Nue Houjuu";
-            }
-            case VSHSpecial_Astro:
-            {
-                SetBossCookie(client, VSHSpecial_Astro);
-                name = "the Astronaut";
-            }
-            default:
-            {
-                SetBossCookie(client, VSHSpecial_None);
-                name = "any random boss";
-            }
-        }
-
-        CPrintToChat(client, "{olive}[VSH]{default} Set your preferred boss to %s.", name);
-    }
-    else if (action == MenuAction_End)
-    {
-        CloseHandle(menu);
-    }
-}
-
-public Action:SetDifficultyCmd(client, args)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Handled;
-    }
-
-    /*if (client == Hale && VSHRoundState == 1)
-    {
-        CPrintToChat(client, "{olive}[VSH]{default} You can't change the difficulty mid-round!");
-        return Plugin_Continue;
-    }*/
-
-    new Handle:panel = CreatePanel();
-
-    SetGlobalTransTarget(client);
-
-    SetPanelTitle(panel, "Choose the difficulty for your next round!");
-
-    new mode = CheckClientDifficulty(client);
-
-    DrawPanelItem(panel, "Easy Mode: What!? Easy Modo? That's so lame! Only kids play the Easy Mode! Hohoho!", ITEMDRAW_DISABLED);
-    DrawPanelItem(panel, "Normal Mode: The default game mode for beginners. Full health. Much rage usage.", mode == mode_normal ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-    DrawPanelItem(panel, "Hard Mode: Want a challenge? Start at 60\% of your health with only 0 to 4 rage uses!", mode == mode_hard ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-    DrawPanelItem(panel, "Lunatic Mode: For Freaks only. 35\% health. No rage. All skill.", mode == mode_lunatic ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-    DrawPanelItem(panel, "Exit.");
-
-    SendPanelToClient(panel, client, DifficultyDone, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Handled;
-}
-
-public DifficultyDone(Handle:menu, MenuAction:action, client, param)
-{
-    if (action == MenuAction_Select)
-    {
-        if (param <= mode_lunatic) SetClientDifficulty(client, param);
-
-        switch (param)
-        {
-            case mode_normal:
-            {
-                CPrintToChat(client, "{olive}[VSH]{default} Normal mode selected.");
-            }
-            case mode_hard:
-            {
-                CPrintToChat(client, "{olive}[VSH]{default} Hard mode selected!");
-            }
-            case mode_lunatic:
-            {
-                CPrintToChat(client, "{olive}[VSH]{default} Lunatic mode... selected?!");
-            }
-        }
-    }
-    else if (action == MenuAction_End)
-    {
-        CloseHandle(menu);
-    }
-}
-
-SetClientDifficulty(client, mode)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return;
-    }
-
-    decl String:cky[5];
-
-    IntToString(mode, cky, sizeof(cky));
-
-    SetClientCookie(client, ModeCookie, cky);
-}
-
-public Action:NeverHaleMe(client, args)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
-    {
-        ToggleHale(client);
-    }
-    else
-    {
-        ToggleHaleDone(INVALID_HANDLE, MenuAction_Select, client, 1);
-    }
-
-    return Plugin_Handled;
-}
-
-public Action:ToggleHale(client)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    //decl String:s[512];
-
-    SetGlobalTransTarget(client);
-
-    //Format(s, 512, "%t", "vsh_toggle");
-    SetPanelTitle(panel, "Do you want to be selected as a boss?");
-
-    DrawPanelItem(panel, "(ON)  Please select me as a boss!");
-    DrawPanelItem(panel, "(OFF) I don't want to be a boss.");
-
-    /*Format(s, 512, "%t", "Yes");
-    DrawPanelItem(panel, s);
-
-    Format(s, 512, "%t", "No");
-    DrawPanelItem(panel, s);*/
-
-    SendPanelToClient(panel, client, ToggleHaleDone, 9001);
-
-    CloseHandle(panel);
-    return Plugin_Continue;
-}
-
-public ToggleHaleDone(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select && param2 == 2)
-    {
-        SetClientQueuePoints(param1, 0);
-        SetClientHaleToggle(param1, true);
-        CPrintToChat(param1, "{olive}[VSH]{default} You have disabled yourself from becoming a boss.");
-    }
-    else if (action == MenuAction_Select && param2 == 1)
-    {
-        SetClientHaleToggle(param1, false);
-        CPrintToChat(param1, "{olive}[VSH]{default} You have enabled yourself for becoming a boss.");
-    }
-}
-
-SetClientHaleToggle(client, bool:on)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return;
-    }
-
-    new String:strCookie[32];
-
-    if (on)
-    {
-        strCookie = "1";
-    }
-    else
-    {
-        strCookie = "0";
-    }
-
-    SetClientCookie(client, ToggleCookie, strCookie);
-}
-
-bool:GetClientClasshelpinfoCookie(client)
-{
-    if (!IsValidClient(client) || IsFakeClient(client))
-    {
-        return false;
-    }
-
-    if (!AreClientCookiesCached(client))
-    {
-        return true;
-    }
-
-    decl String:strCookie[32];
-    GetClientCookie(client, ClasshelpinfoCookie, strCookie, sizeof(strCookie));
-
-    if (strCookie[0] == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return bool:StringToInt(strCookie);
-    }
-}
-
-GetClientQueuePoints(client)
-{
-    if (!IsValidClient(client))
-    {
-        return 0;
-    }
-
-    if (IsFakeClient(client))
-    {
-        return botqueuepoints;
-    }
-
-    if (!AreClientCookiesCached(client))
-    {
-        return 0;
-    }
-
-    decl String:strPoints[32];
-
-    GetClientCookie(client, PointCookie, strPoints, sizeof(strPoints));
-
-    return StringToInt(strPoints);
-}
-
-SetClientQueuePoints(client, points)
-{
-    if (!IsValidClient(client) || IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return;
-    }
-
-    decl String:strPoints[32];
-
-    IntToString(points, strPoints, sizeof(strPoints));
-    SetClientCookie(client, PointCookie, strPoints);
-}
-
-SetAuthIdQueuePoints(String:authid[], points)
-{
-    decl String:strPoints[32];
-    IntToString(points, strPoints, sizeof(strPoints));
-    SetAuthIdCookie(authid, PointCookie, strPoints);
-}
-
-public HalePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select)
-    {
-        switch (param2)
-        {
-            case 1:
-                Command_GetHP(param1);
-            case 2:
-                HelpPanel(param1);
-            case 3:
-                HelpPanel2(param1);
-            case 4:
-                NewPanel(param1, maxversion);
-            case 5:
-                QueuePanel(param1);
-            case 6:
-                MusicTogglePanel(param1);
-            case 7:
-                VoiceTogglePanel(param1);
-            case 8:
-                ClasshelpinfoSetting(param1);
-                /*          case 9:
-                {
-                if (ACH_Enabled)
-                FakeClientCommandEx(param1, "haleach");
-                else
-                return;
-                }
-                case 0:
-                {
-                if (ACH_Enabled)
-                FakeClientCommandEx(param1, "haleach_stats");
-                else
-                return;
-                }*/
-            default:
-                return;
-        }
-    }
-}
-
-public Action:HalePanel(client, args)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-    new size = 256;
-
-    decl String:s[size];
-
-    SetGlobalTransTarget(client);
-
-    Format(s, size, "%t", "vsh_menu_1");
-    SetPanelTitle(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_2");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_3");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_7");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_4");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_5");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_8");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_9");
-    DrawPanelItem(panel, s);
-
-    Format(s, size, "%t", "vsh_menu_9a");
-    DrawPanelItem(panel, s);
-
-    /*  if (ACH_Enabled)
-    {
-    Format(s, size, "%t", "vsh_menu_10");
-    DrawPanelItem(panel, s);
-    Format(s, size, "%t", "vsh_menu_11");
-    DrawPanelItem(panel, s);
-    }*/
-    Format(s, size, "%t", "vsh_menu_exit");
-    DrawPanelItem(panel, s);
-
-    SendPanelToClient(panel, client, HalePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Handled;
-}
-
-public NewPanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select)
-    {
-        switch (param2)
-        {
-            case 1:
-            {
-                      if (curHelp[param1] <= 0)
-                      {
-                          NewPanel(param1, 0);
-                      }
-                      else
-                      {
-                          NewPanel(param1, --curHelp[param1]);
-                      }
-            }
-            case 2:
-            {
-                      if (curHelp[param1] >= maxversion)
-                      {
-                          NewPanel(param1, maxversion);
-                      }
-                      else
-                      {
-                          NewPanel(param1, ++curHelp[param1]);
-                      }
-            }
-            default:
-                return;
-        }
-    }
-}
-
-public Action:NewPanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    NewPanel(client, maxversion);
-
-    return Plugin_Handled;
-}
-
-public Action:NewPanel(client, versionindex)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    curHelp[client] = versionindex;
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[90];
-
-    SetGlobalTransTarget(client);
-
-    Format(s, 90, "=%t TF2Data %s=", "vsh_whatsnew", haleversiontitles[versionindex]);
-    SetPanelTitle(panel, s);
-
-    FindVersionData(panel, versionindex);
-
-    if (versionindex > 0)
-    {
-        if (strcmp(haleversiontitles[versionindex], haleversiontitles[versionindex-1], false) == 0)
-        {
-            Format(s, 90, "Next Page");
-        }
-        else
-        {
-            Format(s, 90, "Older %s", haleversiontitles[versionindex-1]); 
-        }
-        DrawPanelItem(panel, s);
-    }
-    else
-    {
-        Format(s, 90, "%t", "vsh_noolder");
-        DrawPanelItem(panel, s, ITEMDRAW_DISABLED);
-    }
-
-    if (versionindex < maxversion)
-    {
-        if (strcmp(haleversiontitles[versionindex], haleversiontitles[versionindex+1], false) == 0)
-        {
-            Format(s, 90, "Prev Page");
-        }
-        else
-        {
-            Format(s, 90, "Newer %s", haleversiontitles[versionindex+1]);
-        }
-        DrawPanelItem(panel, s);
-    }
-    else
-    {
-        Format(s, 90, "%t", "vsh_nonewer");
-        DrawPanelItem(panel, s, ITEMDRAW_DISABLED);
-    }
-
-    Format(s, 512, "%t", "vsh_menu_exit");
-    DrawPanelItem(panel, s);
-
-    SendPanelToClient(panel, client, NewPanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-
-public HelpPanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (action == MenuAction_Select)
-    {
-        return;
-    }
-}
-
-public Action:HelpPanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    HelpPanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:HelpPanel(client)
-{
-    if (!Enabled2 || IsVoteInProgress())
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    decl String:s[512];
-
-    SetGlobalTransTarget(client);
-
-    Format(s, 512, "%t", "vsh_help_mode");
-    DrawPanelItem(panel, s);
-
-    Format(s, 512, "%t", "vsh_menu_exit");
-    DrawPanelItem(panel, s);
-
-    SendPanelToClient(panel, client, HelpPanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public Action:HelpPanel2Cmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    if (client == Hale)
-    {
-        HintPanel(Hale);
-    }
-    else
-    {
-        HelpPanel2(client);
-    }
-    
-    return Plugin_Handled;
-}
-
-public Action:HelpPanel2(client)
-{
-    if (!Enabled2 || IsVoteInProgress())
-    {
-        return Plugin_Continue;
-    }
-
-    decl String:s[512];
-
-    new TFClassType:class = TF2_GetPlayerClass(client);
-
-    SetGlobalTransTarget(client);
-
-    switch (class)
-    {
-        case TFClass_Scout:
-            Format(s, 512, "%t", "vsh_help_scout");
-        case TFClass_Soldier:
-            Format(s, 512, "%t", "vsh_help_soldier");
-        case TFClass_Pyro:
-            Format(s, 512, "%t", "vsh_help_pyro");
-        case TFClass_DemoMan:
-            Format(s, 512, "%t", "vsh_help_demo");
-        case TFClass_Heavy:
-            Format(s, 512, "%t", "vsh_help_heavy");
-        case TFClass_Engineer:
-            Format(s, 512, "%t", "vsh_help_eggineer");
-        case TFClass_Medic:
-            Format(s, 512, "%t", "vsh_help_medic");
-        case TFClass_Sniper:
-            Format(s, 512, "%t", "vsh_help_sniper");
-        case TFClass_Spy:
-            Format(s, 512, "%t", "vsh_help_spie");
-        default:
-            Format(s, 512, "");
-    }
-
-    new Handle:panel = CreatePanel();
-
-    if (class != TFClass_Sniper)
-    {
-        Format(s, 512, "%t\n%s", "vsh_help_melee", s);
-    }
-
-    SetPanelTitle(panel, s);
-    DrawPanelItem(panel, "Exit");
-
-    SendPanelToClient(panel, client, HintPanelH, 12);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public Action:ClasshelpinfoCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    ClasshelpinfoSetting(client);
-
-    return Plugin_Handled;
-}
-
-public Action:ClasshelpinfoSetting(client)
-{
-    if (!Enabled2)
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the Versus Saxton Hale class info...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, ClasshelpinfoTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Handled;
-}
-
-public ClasshelpinfoTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientCookie(param1, ClasshelpinfoCookie, "0");
-            }
-            else
-            {
-                SetClientCookie(param1, ClasshelpinfoCookie, "1");
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_classinfo", param2 == 2 ? "off":"on");
-        }
-    }
-}
-
-/*public HelpPanelH1(Handle:menu, MenuAction:action, param1, param2)
-{
-if (action == MenuAction_Select)
-{
-if (param2 == 1)
-HelpPanel(param1);
-else if (param2 == 2)
-return;
-}
-}
-public Action:HelpPanel1(client, Args)
-{
-if (!Enabled2)
-return Plugin_Continue;
-new Handle:panel = CreatePanel();
-SetPanelTitle(panel, "Hale is unusually strong.\nBut he doesn't use weapons, because\nhe believes that problems should be\nsolved with bare hands.");
-DrawPanelItem(panel, "Back");
-DrawPanelItem(panel, "Exit");
-SendPanelToClient(panel, client, HelpPanelH1, 9001);
-CloseHandle(panel);
-return Plugin_Continue;
-}*/
-
-public Action:MusicTogglePanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    MusicTogglePanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:MusicTogglePanel(client)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the VS Saxton Hale music...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, MusicTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public MusicTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, false);
-                StopHaleMusic(param1);
-            }
-            else
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_MUSIC, true);
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_music", param2 == 2 ? "off":"on");
-        }
-    }
-}
-
-public Action:VoiceTogglePanelCmd(client, args)
-{
-    if (!IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    VoiceTogglePanel(client);
-
-    return Plugin_Handled;
-}
-
-public Action:VoiceTogglePanel(client)
-{
-    if (!Enabled2 || !IsValidClient(client))
-    {
-        return Plugin_Continue;
-    }
-
-    new Handle:panel = CreatePanel();
-
-    SetPanelTitle(panel, "Turn the VS Saxton Hale voices...");
-
-    DrawPanelItem(panel, "On");
-    DrawPanelItem(panel, "Off");
-
-    SendPanelToClient(panel, client, VoiceTogglePanelH, 9001);
-
-    CloseHandle(panel);
-
-    return Plugin_Continue;
-}
-
-public VoiceTogglePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    if (IsValidClient(param1))
-    {
-        if (action == MenuAction_Select)
-        {
-            if (param2 == 2)
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, false);
-            }
-            else
-            {
-                SetClientSoundOptions(param1, SOUNDEXCEPT_VOICE, true);
-            }
-
-            CPrintToChat(param1, "{olive}[VSH]{default} %t", "vsh_voice", param2 == 2 ? "off":"on");
-
-            if (param2 == 2)
-            {
-                CPrintToChat(param1, "%t", "vsh_voice2");
-            }
-        }
-    }
 }
 
 public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PATH], &entity, &channel, &Float:volume, &level, &pitch, &flags)
@@ -10387,7 +9037,7 @@ public OnEntityCreated(entity, const String:classname[])
 
     if (Enabled && StrEqual(classname, "tf_projectile_pipe", false) || StrEqual(classname, "tf_projectile_rocket", false))
     {
-        SDKHook(entity, SDKHook_SpawnPost, OnEggBombSpawned);
+        SDKHook(entity, SDKHook_SpawnPost, OnBossExplosiveSpawned);
 
         if (Special == VSHSpecial_Cave)
         {
@@ -10562,44 +9212,16 @@ public Action:OnLemonTouch(entity, other)
     return Plugin_Continue;
 }
 
-public OnEggBombSpawned(entity)
+public OnBossExplosiveSpawned(entity)
 {
     new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 
     if (IsValidClient(owner) && owner == Hale)
     {
         if (Special == VSHSpecial_Bunny)
-            CreateTimer(0.0, Timer_SetEggBomb, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
+            CreateTimer(0.0, EasterBunny_EggBombTimer, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
         else if (Special == VSHSpecial_Cave)
-            CreateTimer(0.0, Timer_SetLemon, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
-    }
-}
-
-public Action:Timer_SetEggBomb(Handle:timer, any:ref)
-{
-    new entity = EntRefToEntIndex(ref);
-
-    if (FileExists(EggModel) && IsModelPrecached(EggModel) && IsValidEntity(entity))
-    {
-        new att = AttachProjectileModel(entity, EggModel);
-
-        SetEntProp(att, Prop_Send, "m_nSkin", 0);
-        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
-        SetEntityRenderColor(entity, 255, 255, 255, 0);
-    }
-}
-
-public Action:Timer_SetLemon(Handle:timer, any:ref)
-{
-    new entity = EntRefToEntIndex(ref);
-
-    if (FileExists(LemonModel) && IsModelPrecached(LemonModel) && IsValidEntity(entity))
-    {
-        new att = AttachProjectileModel(entity, LemonModel);
-
-        SetEntProp(att, Prop_Send, "m_nSkin", 0);
-        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
-        SetEntityRenderColor(entity, 255, 255, 255, 0);
+            CreateTimer(0.0, CaveJohnson_SetLemonTimer, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
     }
 }
 
@@ -10698,7 +9320,7 @@ stock bool:IsSaxtonHaleMap(bool:forceRecalc = false)
     if (!found)
     {
         decl String:s[PLATFORM_MAX_PATH];
-        GetCurrentMap(currentmap, sizeof(currentmap));
+        GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
 
         if (FileExists("bNextMapToHale"))
         {
@@ -10736,7 +9358,7 @@ stock bool:IsSaxtonHaleMap(bool:forceRecalc = false)
                 LogError("[VS Saxton Hale] Breaking infinite loop when trying to check the map.");
             Format(s, strlen(s) - 1, s);
             if (strncmp(s, "//", 2, false) == 0) continue;
-            if ((StrContains(currentmap, s, false) != -1) || (StrContains(s, "all", false) == 0))
+            if ((StrContains(g_sCurrentMap, s, false) != -1) || (StrContains(s, "all", false) == 0))
             {
                 CloseHandle(fileh);
                 isVSHMap = true;
@@ -10781,14 +9403,14 @@ stock bool:MapHasMusic(bool:forceRecalc = false)
 stock bool:CheckToChangeMapDoors()
 {
     decl String:s[PLATFORM_MAX_PATH];
-    GetCurrentMap(currentmap, sizeof(currentmap));
+    GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
     checkdoors = false;
 
     BuildPath(Path_SM, s, PLATFORM_MAX_PATH, "configs/saxton_hale/saxton_hale_doors.cfg");
 
     if (!FileExists(s))
     {
-        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
+        if (strncmp(g_sCurrentMap, "vsh_lolcano_pb1", 15, false) == 0)
         {
             checkdoors = true;
         }
@@ -10799,7 +9421,7 @@ stock bool:CheckToChangeMapDoors()
 
     if (fileh == INVALID_HANDLE)
     {
-        if (strncmp(currentmap, "vsh_lolcano_pb1", 15, false) == 0)
+        if (strncmp(g_sCurrentMap, "vsh_lolcano_pb1", 15, false) == 0)
         {
             checkdoors = true;
         }
@@ -10814,7 +9436,7 @@ stock bool:CheckToChangeMapDoors()
             continue;
         }
 
-        if (StrContains(currentmap, s, false) != -1 || StrContains(s, "all", false) == 0)
+        if (StrContains(g_sCurrentMap, s, false) != -1 || StrContains(s, "all", false) == 0)
         {
             CloseHandle(fileh);
             checkdoors = true;
@@ -10921,7 +9543,7 @@ stock bool:CheckNextSpecial()
                 Incoming = VSHSpecial_HHH;
             }
 #endif
-            
+
 #if defined EASTER_BUNNY_ON
             if (IsDate(3, 25, 4, 20) && !GetRandomInt(0, 7)) //IsEasterHoliday()
             {
@@ -11062,7 +9684,7 @@ stock SearchForItemPacks()
 
     decl Float:pos[3];
 
-    if (StrEqual(currentmap, "vsh_minegay_b3", false))
+    if (StrEqual(g_sCurrentMap, "vsh_minegay_b3", false))
     {
         DOWHILE_ENTFOUND(ent, "func_breakable")
         {
@@ -11124,7 +9746,7 @@ stock SearchForItemPacks()
 
         if (Enabled)
         {
-            if (StrEqual(currentmap, "arena_artefact_v3", false))
+            if (StrEqual(g_sCurrentMap, "arena_artefact_v3", false))
             {
                 GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
                 AcceptEntityInput(ent, "Kill");
@@ -11149,7 +9771,7 @@ stock SearchForItemPacks()
 
         if (Enabled)
         {
-            if (StrEqual(currentmap, "vsh_military_area_b1", false))
+            if (StrEqual(g_sCurrentMap, "vsh_military_area_b1", false))
             {
                 GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
                 AcceptEntityInput(ent, "Kill");
@@ -11160,7 +9782,7 @@ stock SearchForItemPacks()
                 SetEntProp(ent2, Prop_Send, "m_iTeamNum", Enabled?OtherTeam:0, 4);
             }
 
-            if (StrEqual(currentmap, "vsh_old_town_b3", false))
+            if (StrEqual(g_sCurrentMap, "vsh_old_town_b3", false))
             {
                 GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
                 AcceptEntityInput(ent, "Kill");
@@ -11185,7 +9807,7 @@ stock SearchForItemPacks()
     }
 
     // Deprecated - removed all team_round_timers via stripper:source
-    /*if (StrEqual(currentmap, "vsh_dustshowdown_new", false))
+    /*if (StrEqual(g_sCurrentMap, "vsh_dustshowdown_new", false))
     {
         //Stop the autowin timer in cp_degrootkeep
 
@@ -11301,63 +9923,6 @@ Float:volume = SNDVOL_NORMAL,
     EmitSound(clients, total, sample, entity, channel,
         level, flags, volume, pitch, speakerentity,
         origin, dir, updatePos, soundtime);
-}
-
-stock bool:CheckSoundException(client, excepttype)
-{
-    if (!IsValidClient(client))
-    {
-        return false;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return true;
-    }
-
-    decl String:strCookie[32];
-
-    if (excepttype == SOUNDEXCEPT_VOICE)
-    {
-        GetClientCookie(client, VoiceCookie, strCookie, sizeof(strCookie));
-    }
-    else
-    {
-        GetClientCookie(client, MusicCookie, strCookie, sizeof(strCookie));
-    }
-
-    if (strCookie[0] == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return bool:StringToInt(strCookie);
-    }
-}
-
-stock SkipHalePanelNotify(client, bool:newchoice = true)
-{
-    if (!Enabled || !IsValidClient(client) || IsVoteInProgress() || CheckHaleToggle(client))
-    {
-        return;
-    }
-
-    new Handle:panel = CreatePanel();
-    decl String:s[256];
-
-    SetPanelTitle(panel, "[VSH] You're Hale next!");
-    Format(s, sizeof(s), "%t\nAlternatively, use !hale_resetq.", "vsh_to0_near");
-    CRemoveTags(s, sizeof(s));
-
-    ReplaceString(s, sizeof(s), "{olive}", "");
-    ReplaceString(s, sizeof(s), "{default}", "");
-
-    DrawPanelItem(panel, s);
-    SendPanelToClient(panel, client, SkipHalePanelH, 30);
-    CloseHandle(panel);
-
-    return;
 }
 
 stock Handle:PrepareItemHandle(Handle:hItem, String:name[] = "", index = -1, const String:att[] = "", bool:dontpreserve = false)
@@ -12136,32 +10701,6 @@ stock TeleportToSpawn(iClient, iTeam = 0)
     }*/
 }
 
-stock CheckClientDifficulty(client)
-{
-    if (!IsValidClient(client))
-    {
-        return mode_normal;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return mode_normal;
-    }
-
-    decl String:cky[5];
-
-    GetClientCookie(client, ModeCookie, cky, sizeof(cky));
-
-    if (cky[0] == 0)
-    {
-        return mode_normal;   //If the cookie doesn't exist yet, normal mode by default
-    }
-    else
-    {
-        return StringToInt(cky);
-    }
-}
-
 stock GetClientCloakIndex(client)
 {
     if (!IsValidClient(client))
@@ -12577,32 +11116,6 @@ stock SpawnWeapon(client, String:name[], index, level, qual, String:att[])
     EquipPlayerWeapon(client, entity);
 
     return entity;
-}
-
-stock bool:CheckHaleToggle(client)  //If true, client cannot become Hale
-{
-    if (!IsValidClient(client))
-    {
-        return true;
-    }
-
-    if (IsFakeClient(client) || !AreClientCookiesCached(client))
-    {
-        return false;
-    }
-
-    decl String:strCookie[32];
-
-    GetClientCookie(client, ToggleCookie, strCookie, sizeof(strCookie));
-
-    if (strCookie[0] == 0)
-    {
-        return false;   //If the cookie doesn't exist yet, they can still become Hale
-    }
-    else
-    {
-        return bool:StringToInt(strCookie);
-    }
 }
 
 stock FindVersionData(Handle:panel, versionindex)
