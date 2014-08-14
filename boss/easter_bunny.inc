@@ -230,3 +230,17 @@ stock EasterBunny_RandomVoice(String:str[], max_size)
     
     return random;
 }
+
+public Action:EasterBunny_EggBombTimer(Handle:timer, any:ref)
+{
+    new entity = EntRefToEntIndex(ref);
+
+    if (FileExists(EggModel) && IsModelPrecached(EggModel) && IsValidEntity(entity))
+    {
+        new att = AttachProjectileModel(entity, EggModel);
+
+        SetEntProp(att, Prop_Send, "m_nSkin", 0);
+        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
+        SetEntityRenderColor(entity, 255, 255, 255, 0);
+    }
+}

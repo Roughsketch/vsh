@@ -222,3 +222,17 @@ public Action:CaveJohnson_EndCaveKillTimer(Handle:hTimer)
     CaveJohnson_SetKillTimer(INVALID_HANDLE);
     return Plugin_Continue;
 }
+
+public Action:CaveJohnson_SetLemonTimer(Handle:timer, any:ref)
+{
+    new entity = EntRefToEntIndex(ref);
+
+    if (FileExists(LemonModel) && IsModelPrecached(LemonModel) && IsValidEntity(entity))
+    {
+        new att = AttachProjectileModel(entity, LemonModel);
+
+        SetEntProp(att, Prop_Send, "m_nSkin", 0);
+        SetEntityRenderMode(entity, RENDER_TRANSCOLOR);
+        SetEntityRenderColor(entity, 255, 255, 255, 0);
+    }
+}

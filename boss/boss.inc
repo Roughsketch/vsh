@@ -1,6 +1,5 @@
 #include "vsh_common"
 
-
 #define HALE_JUMPCHARGETIME 1
 #define HALE_JUMPCHARGE (25 * HALE_JUMPCHARGETIME)
 
@@ -45,7 +44,29 @@
 #define HaleKillLast132         "saxton_hale/saxton_hale_132_last.wav"
 #define HaleStubbed132          "saxton_hale/saxton_hale_132_stub_"  //1-4
 
+enum
+{
+    VSHSpecial_None = -1,
+    VSHSpecial_Hale,
+    VSHSpecial_Vagineer,
+    VSHSpecial_HHH,
+    VSHSpecial_CBS,
+    VSHSpecial_Bunny, //ohgodwhy
+    VSHSpecial_Cave,  //5
+    VSHSpecial_Nue,   //6
+    VSHSpecial_Astro,
+    VSHSpecial_Guard
+}
+
+enum
+{
+    mode_normal = 2,
+    mode_hard,
+    mode_lunatic
+}
+
 //  Global hale-related variables
+new bool:Enabled = false;
 new Hale = -1;
 new HaleHealthMax;
 new HaleHealth;
@@ -62,7 +83,19 @@ new bool:HaleSuperJumpStatus;
 new RageDMG = 3500;
 new Float:RageDist = 800.0;
 new bool:bSpecials = true;
-
+new OtherTeam = 2;
+new HaleTeam = 3;
+new VSHRoundState = -1;
+new playing;
+new healthcheckused;
+new RedAlivePlayers;
+new RoundCount;
+new Special;
+new Incoming;
+new Float:HaleSpeed = 340.0;
+new bool:haleCrits = true;
+new botqueuepoints = 0;
+new iHaleMode = mode_normal;
 new VSHFlags[MAXPLAYERS + 1];
 
 #define VSHFLAG_HELPED          (1 << 0)
@@ -105,3 +138,6 @@ new VSHFlags[MAXPLAYERS + 1];
 #if !defined DISABLE_BOSS_GUARDIAN
   #include "boss/guardian"
 #endif
+
+
+//  Include panels after variables have been defined
