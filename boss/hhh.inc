@@ -72,12 +72,13 @@ stock HHH_StartTeleTimer()
 
 public Action:HHH_TeleTimer(Handle:timer)
 {
-    SetEntProp(Hale, Prop_Send, "m_CollisionGroup", 5); //Fix HHH's clipping.
+    SetEntProp(Boss_GetBossClient(), Prop_Send, "m_CollisionGroup", 5); //Fix HHH's clipping.
     hHHHTeleTimer = INVALID_HANDLE;
 }
 
 public Action:HHH_TimerStun(Handle:timer, Handle:pack)
 {
+    new Hale = Boss_GetBossClient();
     if (!IsValidClient(Hale))
     {
         return;

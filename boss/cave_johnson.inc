@@ -179,6 +179,7 @@ stock CaveJohnson_SetLemonRage(bool:value)
 
 public Action:CaveJohnson_UseLemonRage(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
     if (!GetEntProp(Hale, Prop_Send, "m_bIsReadyToHighFive") && !IsValidEntity(GetEntPropEnt(Hale, Prop_Send, "m_hHighFivePartner")))
     {
         TF2_RemoveCondition(Hale, TFCond_Taunting);
@@ -197,6 +198,7 @@ public Action:CaveJohnson_UseLemonRage(Handle:hTimer)
 
 public Action:CaveJohnson_EndLemonRage(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
     TF2_RemoveWeaponSlot2(Hale, TFWeaponSlot_Primary);
     new SaxtonWeapon = SpawnWeapon(Hale, "tf_weapon_grenadelauncher", 19, 64, 5, "37 ; 0.0 ; 68 ; 2.0 ; 259 ; 1.0 ; 318 ; 0.5 ; 207 ; 0.0 ; 208 ; 1 ; 252 ; 0.7 ; 1 ; 0.9 ; 3 ; 0.75 ; 5 ; 1.1 ; 22 ; 1 ; 527 ; 1");
     SetEntPropEnt(Hale, Prop_Send, "m_hActiveWeapon", SaxtonWeapon);

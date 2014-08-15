@@ -44,6 +44,27 @@
 #define HaleKillLast132         "saxton_hale/saxton_hale_132_last.wav"
 #define HaleStubbed132          "saxton_hale/saxton_hale_132_stub_"  //1-4
 
+
+#define VSHFLAG_HELPED          (1 << 0)
+#define VSHFLAG_UBERREADY       (1 << 1)
+#define VSHFLAG_NEEDSTODUCK     (1 << 2)
+#define VSHFLAG_BOTRAGE         (1 << 3)
+#define VSHFLAG_CLASSHELPED     (1 << 4)
+#define VSHFLAG_HASONGIVED      (1 << 5)
+#define VSHFLAG_EQUIPMSG        (1 << 6)
+
+
+#define VSHMODE_NORMAL          2
+#define VSHMODE_HARD            3
+#define VSHMODE_LUNATIC         4
+
+
+#define PLAYERCOND_SPYCLOAK (1 << 4)
+
+//Teams
+#define TEAM_RED    2
+#define TEAM_BLU    3
+
 enum
 {
     VSHSpecial_None = -1,
@@ -58,54 +79,105 @@ enum
     VSHSpecial_Guard
 }
 
-enum
-{
-    mode_normal = 2,
-    mode_hard,
-    mode_lunatic
-}
-
 //  Global hale-related variables
+
+//===========================================
+//
+//        Plugin related variables
+//
+//===========================================
+
 new bool:Enabled = false;
-new Hale = -1;
+new OtherTeam = 2;
+new HaleTeam = 3;
+
+new iBossClient = -1;
 new HaleHealthMax;
 new HaleHealth;
 new HaleHealthLast;
 new HaleCharge = 0;
 new HaleRage;
 new NextHale;
+
 new Float:Stabbed;
 new Float:Marketed;
 new Float:KSpreeTimer;
 new Float:WeighDownTimer;
 new bool:bEnableSuperDuperJump;
 new bool:HaleSuperJumpStatus;
+new bool:bSpecials = true;
+new VSHRoundState = -1;
+new VSHFlags[MAXPLAYERS + 1];
+
+
+//===========================================
+//
+//             Boss attributes
+//
+//===========================================
+
 new RageDMG = 3500;
 new Float:RageDist = 800.0;
-new bool:bSpecials = true;
-new OtherTeam = 2;
-new HaleTeam = 3;
-new VSHRoundState = -1;
+static Float:fBossSpeed = 340.0;
+static bool:bCritsEnabled = true;
+new iHaleMode = VSHMODE_NORMAL;
+new Float:HPLastChecked;
+
 new playing;
 new healthcheckused;
 new RedAlivePlayers;
 new RoundCount;
 new Special;
 new Incoming;
-new Float:HaleSpeed = 340.0;
-new bool:haleCrits = true;
 new botqueuepoints = 0;
-new iHaleMode = mode_normal;
-new VSHFlags[MAXPLAYERS + 1];
 
-#define VSHFLAG_HELPED          (1 << 0)
-#define VSHFLAG_UBERREADY       (1 << 1)
-#define VSHFLAG_NEEDSTODUCK     (1 << 2)
-#define VSHFLAG_BOTRAGE         (1 << 3)
-#define VSHFLAG_CLASSHELPED     (1 << 4)
-#define VSHFLAG_HASONGIVED      (1 << 5)
-#define VSHFLAG_EQUIPMSG        (1 << 6)
+new bool:NoTaunt = false;
+new Float:UberRageCount;
+new Float:GlowTimer;
 
+
+
+//===========================================
+//
+//      Static accessors and mutators
+//
+//===========================================
+
+stock Boss_SetBossClient(client)
+{
+    iBossClient = client;
+}
+
+stock Boss_GetBossClient()
+{
+    return iBossClient;
+}
+
+stock bool:Boss_IsClientHale(client)
+{
+    return client == iBossClient;
+}
+
+
+stock Boss_SetCritMode(bool:value)
+{
+    bCritsEnabled = value;
+}
+
+stock bool:Boss_CanCrit()
+{
+    return bCritsEnabled;
+}
+
+stock Float:Boss_GetSpeed()
+{
+    return fBossSpeed;
+}
+
+stock Boss_SetSpeed(Float:value)
+{
+    fBossSpeed = value;
+}
 
 #if !defined DISABLE_BOSS_VAGINEER
   #include "boss/vagineer"

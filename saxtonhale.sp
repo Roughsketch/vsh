@@ -206,12 +206,9 @@ new Handle:SandvichTimers[MAXPLAYERS + 1] = INVALID_HANDLE;
 new bool:g_bBzFull[MAXPLAYERS + 1];
 //new g_iTimerTime = 1;
 new bool:PointReady;
-new bool:NoTaunt = false;
-new Float:HPTime;
-new bool:bMedieval;
-new KSpreeCount = 1;
-new Float:UberRageCount;
-new Float:GlowTimer;
+new bool:bMedieval;                 //  UNUSED
+new KSpreeCount = 1;                //  UNUSED
+new Float:circuitStun = 0.0;        //  UNUSED
 
 new Handle:cvarVersion;
 new Handle:cvarHaleSpeed;
@@ -231,6 +228,11 @@ new Handle:cvarForceSpecToHale;
 new Handle:cvarForceHaleTeam;
 new Handle:cvarDebugMessages;
 
+new PointType = 0;
+new PointDelay = 6;
+new AliveToEnable;
+new Float:Announce = 120.0;
+new bool:newRageSentry = true;
 
 new bool:checkdoors = false;
 new Handle:doorchecktimer;
@@ -241,14 +243,6 @@ new Handle:MusicTimer;
 new Handle:hCapResetDMG;
 
 new bool:g_bIsCapEnabled = false;
-new PointDelay = 6;
-new Float:Announce = 120.0;
-new AliveToEnable;
-new PointType = 0;
-new bool:Direct[MAXPLAYERS + 1];            //True = last shot was a direct shot, False = was not
-new Float:DirectTime[MAXPLAYERS + 1];       //Game frame the hit was occured
-new bool:newRageSentry = true;
-new Float:circuitStun = 0.0;
 new bool:bTenSecStart[2] = {false, false};
 new TeamRoundCounter;
 new String:g_sCurrentMap[99];
@@ -259,15 +253,10 @@ new mp_forcecamera;
 new Float:tf_scout_hype_pep_max;
 new defaulttakedamagetype;
 
+new bool:Direct[MAXPLAYERS + 1];            //True = last shot was a direct shot, False = was not
+new Float:DirectTime[MAXPLAYERS + 1];       //Game frame the hit was occured
 new g_iJumpMax = 2;
 new g_iJumps[MAXPLAYERS + 1] = 0;
-
-
-#define PLAYERCOND_SPYCLOAK (1<<4)
-
-//Teams
-#define TEAM_RED    2
-#define TEAM_BLU    3
 
 //new _:g_iAirDashCount[MAXPLAYERS + 1] = 0;
 //#define NueMaxAirDash 2
@@ -567,7 +556,7 @@ public bool:HaleTargetFilter(const String:pattern[], Handle:clients)
     {
         if (IsValidClient(client) && FindValueInArray(clients, client) == -1)
         {
-            if (Enabled && client == Hale)
+            if (Enabled && Boss_IsClientHale(client))
             {
                 if (!non)
                 {
@@ -618,7 +607,7 @@ public OnConfigsExecuted()
     }
 
     SetConVarString(FindConVar("hale_version"), sLatestTitle);
-    HaleSpeed = GetConVarFloat(cvarHaleSpeed);
+    Boss_SetSpeed(GetConVarFloat(cvarHaleSpeed));
     RageDMG = GetConVarInt(cvarRageDMG);
     RageDist = GetConVarFloat(cvarRageDist);
     Announce = GetConVarFloat(cvarAnnounce);
@@ -632,7 +621,7 @@ public OnConfigsExecuted()
     }
 
     AliveToEnable = GetConVarInt(cvarAliveToEnable);
-    haleCrits = GetConVarBool(cvarCrits);
+    Boss_SetCritMode(GetConVarBool(cvarCrits));
     newRageSentry = GetConVarBool(cvarRageSentry);
     circuitStun = GetConVarFloat(cvarCircuitStun);
 
@@ -649,7 +638,7 @@ public OnConfigsExecuted()
         SetConVarInt(FindConVar("mp_forcecamera"), 0);
         SetConVarFloat(FindConVar("tf_scout_hype_pep_max"), 100.0);
 
-        bMedieval = FindEntityByClassname(-1, "tf_logic_medieval")!=-1 || bool:GetConVarInt(FindConVar("tf_medieval"));
+        bMedieval = FindEntityByClassname(-1, "tf_logic_medieval") != -1 || bool:GetConVarInt(FindConVar("tf_medieval"));
         if (bMedieval)
         {
             SetConVarInt(FindConVar("mp_timelimit"), 25);
@@ -704,7 +693,7 @@ public OnMapStart()
     //g_bCanFog = InitFogs();
     Guardian_Initialize();
 
-    HPTime = 0.0;
+    HPLastChecked = 0.0;
     KSpreeTimer = 0.0;
     MusicTimer = INVALID_HANDLE;
     
@@ -714,7 +703,7 @@ public OnMapStart()
 
     TeamRoundCounter = 0;
     doorchecktimer = INVALID_HANDLE;
-    Hale = -1;
+    Boss_SetBossClient(-1);
     for (new i = 1; i <= MaxClients; i++)
     {
         VSHFlags[i] = 0;
@@ -1068,7 +1057,7 @@ public CvarChange(Handle:convar, const String:oldValue[], const String:newValue[
 {
     if (convar == cvarHaleSpeed)
     {
-        HaleSpeed = GetConVarFloat(convar);
+        Boss_SetSpeed(GetConVarFloat(convar));
     }
     else if (convar == cvarPointDelay)
     {
@@ -1104,7 +1093,7 @@ public CvarChange(Handle:convar, const String:oldValue[], const String:newValue[
     }
     else if (convar == cvarCrits)
     {
-        haleCrits = GetConVarBool(convar);
+        Boss_SetCritMode(GetConVarBool(convar));
     }
     else if (convar == cvarRageSentry)
     {
@@ -1263,6 +1252,8 @@ public Action:Timer_Announce(Handle:hTimer)
 
 public Action:event_round_start(Handle:event, const String:name[], bool:dontBroadcast)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!GetConVarBool(cvarEnabled))
     {
 /*#if defined _steamtools_included
@@ -1459,7 +1450,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
 
         for (new i = 1; i <= MaxClients; i++)
         {
-            if (IsValidClient(i) && i != Hale && GetClientTeam(i) != _:TFTeam_Spectator && GetClientTeam(i) != _:TFTeam_Unassigned)
+            if (IsValidClient(i) && !Boss_IsClientHale(i) && GetClientTeam(i) != _:TFTeam_Spectator && GetClientTeam(i) != _:TFTeam_Unassigned)
             {
                 if (GetClientTeam(i) != OtherTeam)
                 {
@@ -1503,12 +1494,12 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
 
     if (NextHale > 0)
     {
-        Hale = NextHale;
+        Boss_SetBossClient(NextHale);
         NextHale = -1;
     }
     else
     {
-        Hale = tHale;
+        Boss_SetBossClient(tHale);
     }
 
     bTenSecStart[0] = true;
@@ -1659,6 +1650,7 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
     Nue_SetRageActive(false);
     //bNue_Is_Scout = false;
 
+    new Hale = Boss_GetBossClient();
     new String:s[265];
     decl String:s2[265];
     new bool:see = false;
@@ -1926,6 +1918,7 @@ public Action:Timer_CalcScores(Handle:timer)
 
 public Action:StartResponceTimer(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
     decl String:s[PLATFORM_MAX_PATH];
     decl Float:pos[3];
 
@@ -1991,6 +1984,7 @@ public Action:tTenSecStart(Handle:hTimer, any:ofs)
 
 public Action:StartHaleTimer(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
     CreateTimer(0.1, GottamTimer);
 
     if (!IsValidClient(Hale))
@@ -2008,7 +2002,7 @@ public Action:StartHaleTimer(Handle:hTimer)
 
     for (new client = 1; client <= MaxClients; client++)
     {
-        if (!IsClientInGame(client) || !IsPlayerAlive(client) || client == Hale) continue;
+        if (!IsClientInGame(client) || !IsPlayerAlive(client) || Boss_IsClientHale(client)) continue;
         playing++;
         CreateTimer(0.2, MakeNoHale, GetClientUserId(client));
     }
@@ -2034,22 +2028,22 @@ public Action:StartHaleTimer(Handle:hTimer)
 
     iHaleMode = CheckClientDifficulty(Hale);
 
-    if (iHaleMode == mode_normal)
+    if (iHaleMode == VSHMODE_NORMAL)
     {
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Normal Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
-    else if (iHaleMode == mode_hard)
+    else if (iHaleMode == VSHMODE_HARD)
     {
         CPrintToChatAll("{olive}[VSH]{default} Warning! Time for a Hard Mode round!");
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Hard Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
-    else if (iHaleMode == mode_lunatic)
+    else if (iHaleMode == VSHMODE_LUNATIC)
     {
         CPrintToChatAll("{olive}[VSH]{default} Warning! We have an incoming LUNATIC!");
         CPrintToChat(Hale, "{olive}[VSH]{default} You are now playing Lunatic Mode. \"{lightgreen}!halemode{default}\" to change.");
     }
 
-    HaleHealthMax = RoundFloat(float(HaleHealthMax) * ((iHaleMode == mode_hard) ? 0.6 : (iHaleMode == mode_lunatic) ? 0.35 : 1.0));
+    HaleHealthMax = RoundFloat(float(HaleHealthMax) * ((iHaleMode == VSHMODE_HARD) ? 0.6 : (iHaleMode == VSHMODE_LUNATIC) ? 0.35 : 1.0));
 
     TF2Attrib_SetByName(Hale, "max health additive bonus", float(HaleHealthMax-GetClassBaseHP(Hale)));
     SetEntityHealth(Hale, HaleHealthMax);
@@ -2057,7 +2051,7 @@ public Action:StartHaleTimer(Handle:hTimer)
     SetEntProp(Hale, Prop_Data, "m_iMaxHealth", HaleHealthMax);
 
     HaleHealth = HaleHealthMax;
-    //HaleHealth = RoundFloat(float(HaleHealth) * ((iHaleMode == mode_hard) ? 0.6 : (iHaleMode == mode_lunatic) ? 0.35 : 1.0));
+    //HaleHealth = RoundFloat(float(HaleHealth) * ((iHaleMode == VSHMODE_HARD) ? 0.6 : (iHaleMode == VSHMODE_LUNATIC) ? 0.35 : 1.0));
 
     /*
      Hard mode rage uses:
@@ -2081,7 +2075,7 @@ public Action:StartHaleTimer(Handle:hTimer)
     1/
 
     */
-    if (iHaleMode == mode_hard)
+    if (iHaleMode == VSHMODE_HARD)
     {
         if (playing <= 2)
         {
@@ -2324,6 +2318,7 @@ public Action:GottamTimer(Handle:hTimer)
 
 public Action:StartRound(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
     VSHRoundState = 1;
 
     if (IsValidClient(Hale))
@@ -2364,6 +2359,7 @@ public Action:StartRound(Handle:hTimer)
 
 public Action:Timer_ReEquipSaxton(Handle:timer)
 {
+    new Hale = Boss_GetBossClient();
     if (IsValidClient(Hale))
     {
         EquipSaxton(Hale);
@@ -2374,6 +2370,7 @@ public Action:Timer_SkipHalePanel(Handle:hTimer)
 {
     new bool:added[MAXPLAYERS + 1];
     new i, j;
+    new Hale = Boss_GetBossClient();
     new client = Hale;
 
     do
@@ -2385,7 +2382,7 @@ public Action:Timer_SkipHalePanel(Handle:hTimer)
             added[client] = true;
         }
 
-        if (IsValidClient(client) && client != Hale && !CheckHaleToggle(client))
+        if (IsValidClient(client) && !Boss_IsClientHale(client) && !CheckHaleToggle(client))
         {
             if (!IsFakeClient(client))
             {
@@ -2456,6 +2453,8 @@ public Action:RemoveEnt(Handle:timer, any:entid)
 
 public Action:MessageTimer(Handle:hTimer, any:client)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!IsValidClient(Hale) || ((client != 9001) && !IsValidClient(client)))
     {
         return Plugin_Continue;
@@ -2523,6 +2522,8 @@ public Action:MessageTimer(Handle:hTimer, any:client)
 
 public Action:MakeModelTimer(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!IsValidClient(Hale) || !IsPlayerAlive(Hale) || VSHRoundState == 2)
     {
         return Plugin_Stop;
@@ -2657,6 +2658,8 @@ EquipSaxton(client)
 
 public Action:MakeHale(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!IsValidClient(Hale))
     {
         return Plugin_Continue;
@@ -2811,7 +2814,7 @@ public Action:TF2Items_OnGiveNamedItem(client, String:classname[], iItemDefiniti
     // Doesn't work on first round
     //if (!Enabled) return Plugin_Continue;
 
-    //  if (client == Hale) return Plugin_Continue;
+    //  if (Boss_IsClientHale(client)) return Plugin_Continue;
     //  if (hItem != INVALID_HANDLE) return Plugin_Continue;
 
     /*new bChanged = false;
@@ -2988,7 +2991,7 @@ public Action:TF2Items_OnGiveNamedItem(client, String:classname[], iItemDefiniti
             {
                 hItem = hItemOverride;
 
-                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG) && (client != Hale))
+                if (!(VSHFlags[client] & VSHFLAG_EQUIPMSG) && (!Boss_IsClientHale(client)))
                 {
                     CPrintToChat(client, "{olive}[VSH]{default} Equipped The Phase Shift instead of The Cloak N' Dagger.");
                     VSHFlags[client] |= VSHFLAG_EQUIPMSG;
@@ -3485,7 +3488,7 @@ public Action:evEquipped(Handle:hEvent, const String:sName[], bool:bDontBroadcas
     if (GetClientTeam(client) != TEAM_BLU && GetClientTeam(client) != TEAM_RED)
         return Plugin_Continue;
 
-    if (client != Hale)
+    if (!Boss_IsClientHale(client))
     {
         ReplaceList(client);
 
@@ -3502,7 +3505,7 @@ public Action:MakeNoHale(Handle:hTimer, any:clientid)
 {
     new client = GetClientOfUserId(clientid);
 
-    if (!IsValidClient(client) || !IsPlayerAlive(client) || VSHRoundState == 2 || client == Hale)
+    if (!IsValidClient(client) || !IsPlayerAlive(client) || VSHRoundState == 2 || Boss_IsClientHale(client))
     {
         return Plugin_Continue;
     }
@@ -3581,12 +3584,14 @@ public Action:Timer_NoHonorBound(Handle:timer, any:userid)
 
 public Action:event_destroy(Handle:event, const String:name[], bool:dontBroadcast)
 {
+    new Hale = Boss_GetBossClient();
+
     if (Enabled)
     {
         new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
         new customkill = GetEventInt(event, "customkill");
 
-        if (attacker == Hale) /* || (attacker == Companion)*/
+        if (Boss_IsClientHale(attacker)) /* || (attacker == Companion)*/
         {
             if (Special == VSHSpecial_Hale)
             {
@@ -3619,7 +3624,7 @@ public Action:event_changeclass(Handle:event, const String:name[], bool:dontBroa
 
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
 
-    if (client == Hale)
+    if (Boss_IsClientHale(client))
     {
         switch (Special)
         {
@@ -3932,7 +3937,7 @@ public Action:Command_GetHP(client)
         return Plugin_Continue;
     }
 
-    if (client == Hale)
+    if (Boss_IsClientHale(client))
     {
         switch (Special)
         {
@@ -3959,7 +3964,7 @@ public Action:Command_GetHP(client)
         return Plugin_Continue;
     }
 
-    if (GetGameTime() >= HPTime)
+    if (GetGameTime() >= HPLastChecked)
     {
         healthcheckused++;
 
@@ -4016,7 +4021,7 @@ public Action:Command_GetHP(client)
         }
 
         HaleHealthLast = HaleHealth;
-        HPTime = GetGameTime() + (healthcheckused < 3 ? 20.0:80.0);
+        HPLastChecked = GetGameTime() + (healthcheckused < 3 ? 20.0:80.0);
 
     }
     else if (RedAlivePlayers == 1)
@@ -4027,11 +4032,11 @@ public Action:Command_GetHP(client)
     {
         if (!Nue_IsRageActive())
         {
-            CPrintToChat(client, "{olive}[VSH]{default} %t", (Special == VSHSpecial_Nue) ? "vsh_wait_her_hp" : "vsh_wait_hp", RoundFloat(HPTime - GetGameTime()), HaleHealthLast);
+            CPrintToChat(client, "{olive}[VSH]{default} %t", (Special == VSHSpecial_Nue) ? "vsh_wait_her_hp" : "vsh_wait_hp", RoundFloat(HPLastChecked - GetGameTime()), HaleHealthLast);
         }
         else
         {
-            CPrintToChat(client, "{olive}[VSH]{default} You cannot see her HP now (wait %i seconds). Last known health was ----.", RoundFloat(HPTime - GetGameTime()));
+            CPrintToChat(client, "{olive}[VSH]{default} You cannot see her HP now (wait %i seconds). Last known health was ----.", RoundFloat(HPLastChecked - GetGameTime()));
         }
     }
 
@@ -4258,6 +4263,8 @@ public Action:Command_HaleSetHP(client, args)
 
 public Action:Command_HaleSetMaxHP(client, args)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!Enabled || VSHRoundState != 1)
     {
         ReplyToCommand(client, "[VSH] Cannot set boss health yet.");
@@ -4367,6 +4374,7 @@ public OnClientDisconnect(client)
     //DirectTime[client] = -1.0;
     //SetAirBlastFlag(client, false);
 
+    new Hale = Boss_GetBossClient();
     Damage[client] = 0;
     AirDamage[client] = 0;
     uberTarget[client] = -1;
@@ -4374,7 +4382,7 @@ public OnClientDisconnect(client)
 
     if (Enabled)
     {
-        if (client == Hale)
+        if (Boss_IsClientHale(client))
         {
             if (VSHRoundState == 1 || VSHRoundState == 2)
             {
@@ -4428,7 +4436,7 @@ public OnClientDisconnect(client)
 
                 if (IsValidClient(tHale))
                 {
-                    Hale = tHale;
+                    Boss_SetBossClient(tHale);
 
                     if (GetClientTeam(Hale) != HaleTeam)
                     {
@@ -4509,7 +4517,7 @@ public Action:event_player_spawn(Handle:event, const String:name[], bool:dontBro
     SetVariantString("");
     AcceptEntityInput(client, "SetCustomModel");
 
-    if (client == Hale && VSHRoundState < 2 && VSHRoundState != -1)
+    if (Boss_IsClientHale(client) && VSHRoundState < 2 && VSHRoundState != -1)
     {
         CreateTimer(0.1, MakeHale);
     }
@@ -4608,6 +4616,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
             bDataPressed[client] = false;
         }
     }*/
+    new Hale = Boss_GetBossClient();    
 
     if (!Enabled || !IsPlayerAlive(client))
     {
@@ -4616,7 +4625,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
     static bool:bPressed[MAXPLAYERS + 1] = false;
 
-    if (client != Hale)
+    if (!Boss_IsClientHale(client))
     {
         if ((buttons & IN_ATTACK2) && GetClientCloakIndex(client) == 60 && GetEntProp(client, Prop_Send, "m_bFeignDeathReady") == 1)
         {
@@ -4656,12 +4665,19 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                 if (buttons & IN_JUMP)
                 {
                     if (!bPressed[client])
-                        if (g_iJumps[client]++ > 1)
+                    {
+                        if (g_iJumps[client] > 1)
+                        {
                             SetEntProp(client, Prop_Send, "m_iAirDash", 9);
+                            g_iJumps[client]++;
+                        }
+                    }
                     bPressed[client] = true;
                 }
                 else
+                {
                     bPressed[client] = false;
+                }
 
             return Plugin_Continue;
         }
@@ -4671,7 +4687,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
             return Plugin_Continue;
         }
     }
-    else if (client == Hale)
+    else if (Boss_IsClientHale(client))
     {
         new hWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 
@@ -4706,15 +4722,23 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                 bPressed[client] = false;
             }
             else
+            {
                 if (buttons & IN_JUMP)
                 {
                     if (!bPressed[client])
+                    {
                         if (1 <= g_iJumps[client]++ < 3) //If our jumps are less than max and it's our second+ jump
+                        {
                             DoubleJump(client, _, false);
+                        }
+                    }
                     bPressed[client] = true;
                 }
                 else
-                    bPressed[client] = false;
+                {
+                    bPressed[client] = false;   
+                }
+            }
         }
         else if (Special == VSHSpecial_Nue && !HaleSuperJumpStatus && !TF2_IsPlayerInCondition(client, TFCond_Cloaked))
         {
@@ -4767,15 +4791,25 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
                     bPressed[client] = false;
                 }
                 else
+                {
                     if (buttons & IN_JUMP)
                     {
                         if (!bPressed[client])
-                            if (1 <= g_iJumps[client]++ < (bAtom ? 3 : g_iJumpMax)) //If our jumps are less than max and it's our second+ jump
+                        {
+                            if (1 <= g_iJumps[client] < (bAtom ? 3 : g_iJumpMax)) //If our jumps are less than max and it's our second+ jump
+                            {
                                 DoubleJump(client, bWinger ? 350.0 : 280.0);
+                                g_iJumps[client]++;
+                            }
+                        }
+
                         bPressed[client] = true;
                     }
                     else
+                    {
                         bPressed[client] = false;
+                    }
+                }
             }
         }
     }
@@ -4795,7 +4829,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 
         new target = GetEntPropEnt(medigun, Prop_Send, "m_hHealingTarget");
 
-        if (!IsValidClient(target) || !IsPlayerAlive(target) || target != Hale || bNueRageActive)
+        if (!IsValidClient(target) || !IsPlayerAlive(target) || !Boss_IsClientHale(target) || bNueRageActive)
         {
             g_iTimerTime = 1;
 
@@ -4886,12 +4920,13 @@ public Action:ClientTimer(Handle:hTimer)
 {
     if (VSHRoundState > 1 || VSHRoundState == -1) return Plugin_Stop;
 
+    new Hale = Boss_GetBossClient();
     decl String:wepclassname[32];
     new i = -1;
 
     for (new client = 1; client <= MaxClients; client++)
     {
-        if (IsValidClient(client) && client != Hale && GetClientTeam(client) == OtherTeam)
+        if (IsValidClient(client) && !Boss_IsClientHale(client) && GetClientTeam(client) == OtherTeam)
         {
             if (Special == VSHSpecial_Guard)
             {
@@ -4936,7 +4971,7 @@ public Action:ClientTimer(Handle:hTimer)
             {
                 new obstarget = GetEntPropEnt(client, Prop_Send, "m_hObserverTarget");
 
-                if (IsValidClient(obstarget) && obstarget != Hale && obstarget != client)
+                if (IsValidClient(obstarget) && !Boss_IsClientHale(obstarget) && obstarget != client)
                 {
                     if (!(GetClientButtons(client) & IN_SCORE))
                     {
@@ -5325,6 +5360,8 @@ public OnPreThinkPost(client)
 
 public Action:HaleTimer(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (VSHRoundState == 2)
     {
         if (IsValidClient(Hale) && IsPlayerAlive(Hale))
@@ -5427,7 +5464,7 @@ public Action:HaleTimer(Handle:hTimer)
         HaleSuperJumpStatus = false;
     }
 
-    new Float:speed = HaleSpeed + 0.7 * (100 - HaleHealth * 100 / HaleHealthMax);
+    new Float:speed = Boss_GetSpeed() + 0.7 * (100 - HaleHealth * 100 / HaleHealthMax);
 
     if (Special == VSHSpecial_Cave && CaveJohnson_GetLemonRage()) speed = 80.0; ///= 3.0; 80.0 is sniper scope / cow mangler speed
 
@@ -5464,14 +5501,14 @@ public Action:HaleTimer(Handle:hTimer)
     }
 
     SetHaleHealthFix(Hale, HaleHealth);
-    SetHudTextParams(-1.0, (iHaleMode == mode_lunatic && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
+    SetHudTextParams(-1.0, (iHaleMode == VSHMODE_LUNATIC && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
     SetGlobalTransTarget(Hale);
     if (!(GetClientButtons(Hale) & IN_SCORE))
     {
         ShowSyncHudText(Hale, healthHUD, "%t", "vsh_health", HaleHealth, HaleHealthMax);
     }
 
-    if (iHaleMode != mode_lunatic || Special == VSHSpecial_Nue)
+    if (iHaleMode != VSHMODE_LUNATIC || Special == VSHSpecial_Nue)
     {
         if (Special == VSHSpecial_Nue)
         {
@@ -5644,7 +5681,7 @@ public Action:HaleTimer(Handle:hTimer)
                 {
                     target = GetRandomInt(1, MaxClients);
                 }
-                while ((RedAlivePlayers > 0) && (!IsValidClient(target) || (target == Hale) || !IsPlayerAlive(target) || GetClientTeam(target) != OtherTeam));
+                while ((RedAlivePlayers > 0) && (!IsValidClient(target) || (Boss_IsClientHale(target)) || !IsPlayerAlive(target) || GetClientTeam(target) != OtherTeam));
 
                 if (IsValidClient(target))
                 {
@@ -5761,7 +5798,7 @@ public Action:HaleTimer(Handle:hTimer)
 
                     for (new i = 1; i <= MaxClients; i++)
                     {
-                        if (IsValidClient(i) && (i != Hale))
+                        if (IsValidClient(i) && (!Boss_IsClientHale(i)))
                         {
                             EmitSoundToClient(i, s, Hale, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, pos, NULL_VECTOR, true, 0.0);
                             EmitSoundToClient(i, s, Hale, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, pos, NULL_VECTOR, true, 0.0);
@@ -5865,6 +5902,8 @@ public Action:HaleTimer(Handle:hTimer)
 
 public Action:Timer_BotRage(Handle:timer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!IsValidClient(Hale))
     {
         return;
@@ -5895,7 +5934,7 @@ public Action:Timer_GravityCat(Handle:timer, any:userid)
 
 public Action:Destroy(client, const String:command[], argc)
 {
-    if (!Enabled || client == Hale)
+    if (!Enabled || Boss_IsClientHale(client))
     {
         return Plugin_Continue;
     }
@@ -6244,7 +6283,7 @@ public Action:cdVoiceMenu(iClient, const String:sCommand[], iArgc)
     
     // Capture call for medic commands (represented by "voicemenu 0 0")
 
-    if (sCmd1[0] == '0' && sCmd2[0] == '0' && IsPlayerAlive(iClient) && iClient == Hale)
+    if (sCmd1[0] == '0' && sCmd2[0] == '0' && IsPlayerAlive(iClient) && Boss_IsClientHale(iClient))
     {
         if (!Nue_IsRageActive() && (HaleRage / RageDMG >= 1))
         {
@@ -6262,7 +6301,14 @@ public Action:cdVoiceMenu(iClient, const String:sCommand[], iArgc)
 
 public Action:DoTaunt(client, const String:command[], argc)
 {
-    if (!Enabled || (client != Hale) || TF2_IsPlayerInCondition(Hale, TFCond_Cloaked) || TF2_IsPlayerInCondition(Hale, TFCond_Disguised) || Special == VSHSpecial_Guard || (iHaleMode == mode_lunatic && Special != VSHSpecial_Nue)) return Plugin_Continue;
+    new Hale = Boss_GetBossClient();
+
+    if (!Enabled || !Boss_IsClientHale(client) || TF2_IsPlayerInCondition(Hale, TFCond_Cloaked) ||
+        TF2_IsPlayerInCondition(Hale, TFCond_Disguised) || Special == VSHSpecial_Guard ||
+        (iHaleMode == VSHMODE_LUNATIC && Special != VSHSpecial_Nue))
+    {
+        return Plugin_Continue;   
+    }
 
     if (NoTaunt)
     {
@@ -6432,7 +6478,7 @@ public Action:DoTaunt(client, const String:command[], argc)
 
         for (new i = 1; i <= MaxClients; i++)
         {
-            if (IsValidClient(i) && i != Hale)
+            if (IsValidClient(i) && !Boss_IsClientHale(i))
             {
                 EmitSoundToClient(i, s, client, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, pos, NULL_VECTOR, true, 0.0);
                 EmitSoundToClient(i, s, client, _, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, client, pos, NULL_VECTOR, true, 0.0);
@@ -6458,7 +6504,7 @@ public Action:DoSuicide(client, const String:command[], argc)
 {
     if (Enabled && (VSHRoundState == 0 || VSHRoundState == 1))
     {
-        if (client == Hale && bTenSecStart[0])
+        if (Boss_IsClientHale(client) && bTenSecStart[0])
         {
             CPrintToChat(client, "Do not suicide as Hale. !hale_resetq or !haletoggle instead.");
             return Plugin_Handled;
@@ -6471,7 +6517,7 @@ public Action:DoSuicide(client, const String:command[], argc)
 
 public Action:DoSuicide2(client, const String:command[], argc)
 {
-    if (Enabled && client == Hale && bTenSecStart[0])
+    if (Enabled && Boss_IsClientHale(client) && bTenSecStart[0])
     {
         CPrintToChat(client, "You can't change teams this early.");
         return Plugin_Handled;
@@ -6481,6 +6527,7 @@ public Action:DoSuicide2(client, const String:command[], argc)
 
 public Action:UseRage(Handle:hTimer, any:dist)
 {
+    new Hale = Boss_GetBossClient();
     decl Float:pos[3];
     decl Float:pos2[3];
     decl i;
@@ -6498,7 +6545,7 @@ public Action:UseRage(Handle:hTimer, any:dist)
 
     for (i = 1; i <= MaxClients; i++)
     {
-        if (IsValidClient(i) && IsPlayerAlive(i) && (i != Hale))
+        if (IsValidClient(i) && IsPlayerAlive(i) && (!Boss_IsClientHale(i)))
         {
             GetEntPropVector(i, Prop_Send, "m_vecOrigin", pos2);
             distance = GetVectorDistance(pos, pos2);
@@ -6602,6 +6649,8 @@ public Action:UseRage(Handle:hTimer, any:dist)
 
 public Action:UseUberRage(Handle:hTimer, any:param)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!IsValidClient(Hale))
     {
         return Plugin_Stop;
@@ -6646,6 +6695,8 @@ public Action:UseUberRage(Handle:hTimer, any:param)
 
 public Action:UseBowRage(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (!GetEntProp(Hale, Prop_Send, "m_bIsReadyToHighFive") && !IsValidEntity(GetEntPropEnt(Hale, Prop_Send, "m_hHighFivePartner")))
     {
         TF2_RemoveCondition(Hale, TFCond_Taunting);
@@ -6665,7 +6716,7 @@ public Action:UseBowRage(Handle:hTimer)
 {
     new attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 
-    if (Enabled && attacker == Hale && bNueRageActive)
+    if (Enabled && Boss_IsClientHale(attacker) && bNueRageActive)
     {
         SetEventBool(event, "silentkill", true);
 
@@ -6677,6 +6728,7 @@ public Action:UseBowRage(Handle:hTimer)
 
 public Action:event_player_death(Handle:event, const String:name[], bool:dontBroadcast)
 {
+    new Hale = Boss_GetBossClient();
     decl String:s[PLATFORM_MAX_PATH];
 
     if (!Enabled)
@@ -6700,17 +6752,17 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         SDKUnhook(client, SDKHook_PreThinkPost, OnPreThinkPost);
     }
 
-    if (client == Hale)
+    if (Boss_IsClientHale(client))
     {
         Nue_SetRageActive(false);
     }
 
-    if (attacker == Hale && Special == VSHSpecial_Bunny && VSHRoundState == 1)
+    if (Boss_IsClientHale(attacker) && Special == VSHSpecial_Bunny && VSHRoundState == 1)
     {
         SpawnManyAmmoPacks(client, EggModel, 1, 5, 120.0);
     }
 
-    if (attacker == Hale && VSHRoundState == 1 && (deathflags & TF_DEATHFLAG_DEADRINGER))
+    if (Boss_IsClientHale(attacker) && VSHRoundState == 1 && (deathflags & TF_DEATHFLAG_DEADRINGER))
     {
         numHaleKills++;
 
@@ -6741,7 +6793,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         Nue_SetLastKillTime(GetGameTime()); // Don't play the sound more than once when slaying multiple players at the same time
     }
 
-    /*if (bNueRageActive && attacker == Hale)
+    /*if (bNueRageActive && Boss_IsClientHale(attacker))
     {
         decl String:weapon[64];
         GetEventString(event, "weapon", weapon, sizeof(weapon));
@@ -6761,12 +6813,12 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
 
     CreateTimer(0.1, CheckAlivePlayers);
 
-    if (client != Hale && VSHRoundState == 1)
+    if (!Boss_IsClientHale(client) && VSHRoundState == 1)
     {
         CreateTimer(1.0, Timer_Damage, GetClientUserId(client));
     }
 
-    if (client == Hale && VSHRoundState == 1)
+    if (Boss_IsClientHale(client) && VSHRoundState == 1)
     {
         switch (Special)
         {
@@ -6829,7 +6881,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         return Plugin_Continue;
     }
 
-    if (attacker == Hale && VSHRoundState == 1)
+    if (Boss_IsClientHale(attacker) && VSHRoundState == 1)
     {
         numHaleKills++;
 
@@ -7127,7 +7179,7 @@ public Action:event_deflect(Handle:event, const String:name[], bool:dontBroadcas
     new owner = GetClientOfUserId(GetEventInt(event, "ownerid"));
     new weaponid = GetEventInt(event, "weaponid");
 
-    if (owner != Hale)
+    if (!Boss_IsClientHale(owner))
     {
         return Plugin_Continue;
     }
@@ -7169,10 +7221,11 @@ public Action:event_deflect(Handle:event, const String:name[], bool:dontBroadcas
 
 public Action:event_jarate(UserMsg:msg_id, Handle:bf, const players[], playersNum, bool:reliable, bool:init)
 {
+    new Hale = Boss_GetBossClient();
     new client = BfReadByte(bf);
     new victim = BfReadByte(bf);
 
-    if (victim != Hale)
+    if (!Boss_IsClientHale(victim))
     {
         return Plugin_Continue;
     }
@@ -7215,6 +7268,8 @@ public Action:event_jarate(UserMsg:msg_id, Handle:bf, const players[], playersNu
 
 public Action:CheckAlivePlayers(Handle:hTimer)
 {
+    new Hale = Boss_GetBossClient();
+
     if (VSHRoundState != 1) //(VSHRoundState == 2 || VSHRoundState == -1)
     {
         return Plugin_Continue;
@@ -7352,7 +7407,7 @@ public Action:event_hurt(Handle:event, const String:name[], bool:dontBroadcast)
     new bool:bIsCrit = GetEventBool(event, "crit");
     new bool:bIsMini = GetEventBool(event, "minicrit");
 
-    if (client != Hale || !IsValidClient(attacker) || !IsValidClient(client) || client == attacker) // || custom == TF_CUSTOM_BACKSTAB)
+    if (!Boss_IsClientHale(client) || !IsValidClient(attacker) || !IsValidClient(client) || client == attacker) // || custom == TF_CUSTOM_BACKSTAB)
     {
         return Plugin_Continue;
     }
@@ -7480,13 +7535,13 @@ public Action:OnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &iDmg
         return Plugin_Continue;
     }
 
-    if ((iAtker < 0) && (iVictim == Hale))
+    if ((iAtker < 0) && (Boss_IsClientHale(iVictim)))
     {
         CPrintToChdata("iAtker < 0 versus hale");
         return Plugin_Continue;
     }
 
-    if (iAtker == 0 && (iDmgType & DMG_FALL) && iVictim == Hale)
+    if (iAtker == 0 && (iDmgType & DMG_FALL) && Boss_IsClientHale(iVictim))
     {
         flDamage = (HaleHealth>32)?1.0:32.0;
         return Plugin_Changed;
@@ -7523,17 +7578,17 @@ public Action:OnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &iDmg
     // Set up return
     new Action:aReturn = Plugin_Continue;
 
-    if (iAtker == Hale && iVictim != Hale)
+    if (Boss_IsClientHale(iAtker) && !Boss_IsClientHale(iVictim))
     {
         // When Hale attacks a player
         aReturn = ActionApply(aReturn, PlayerOnTakeDamage(iVictim, iAtker, iInflictor, flDamage, iDmgType, iWeapon, vDmgForce, vDmgPos, iDmgCustom, vPos));
     }
-    else if (iAtker != Hale && iVictim == Hale)
+    else if (!Boss_IsClientHale(iAtker) && Boss_IsClientHale(iVictim))
     {
         // When a player attacks Hale
         aReturn = ActionApply(aReturn, HaleOnTakeDamage(iVictim, iAtker, iInflictor, flDamage, iDmgType, iWeapon, vDmgForce, vDmgPos, iDmgCustom, vPos));
     }
-    else if (iAtker == 0 && (iDmgType & DMG_FALL) && iVictim != Hale)
+    else if (iAtker == 0 && (iDmgType & DMG_FALL) && !Boss_IsClientHale(iVictim))
     {
         // When a player takes fall damage
         new TFClassType:iClass = TF2_GetPlayerClass(iVictim);
@@ -7785,7 +7840,7 @@ public Action:PlayerOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage,
         SetEntPropFloat(iVictim, Prop_Send, "m_flRageMeter", iAdd);
     }
 
-    if (flDamage <= 160.0 && (Special != VSHSpecial_Cave) && !(Special == VSHSpecial_CBS && iInflictor != iAtker) && (Special != VSHSpecial_Bunny || iWeapon == -1 || iWeapon == GetPlayerWeaponSlot(Hale, TFWeaponSlot_Melee)))
+    if (flDamage <= 160.0 && (Special != VSHSpecial_Cave) && !(Special == VSHSpecial_CBS && iInflictor != iAtker) && (Special != VSHSpecial_Bunny || iWeapon == -1 || iWeapon == GetPlayerWeaponSlot(Boss_GetBossClient(), TFWeaponSlot_Melee)))
     {
         CPrintToChdata("160 damage thing");
         if (Special != VSHSpecial_Nue) flDamage *= 3;
@@ -7805,6 +7860,7 @@ iAtker is a live player or trigger_hurt
 */
 public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &iDmgType, &iWeapon, Float:vDmgForce[3], Float:vDmgPos[3], iDmgCustom, Float:vPos[3])
 {
+    new Hale = Boss_GetBossClient();
     new bChanged = false;
     new iFlags = GetEntityFlags(Hale);
 
@@ -8469,6 +8525,12 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                         EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
                     }
+                    case VSHSpecial_CBS:
+                    {
+                        CBS_RandomPain(s, PLATFORM_MAX_PATH);
+                        EmitSoundToAll(s, _, SNDCHAN_VOICE, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
+                        EmitSoundToAllExcept(SOUNDEXCEPT_VOICE, s, _, SNDCHAN_ITEM, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, 100, Hale, NULL_VECTOR, NULL_VECTOR, false, 0.0);
+                    }
                     case VSHSpecial_Cave:
                     {
                         strcopy(s, PLATFORM_MAX_PATH, CaveStab);
@@ -8660,11 +8722,11 @@ public Action:Timer_NueDisguiseBackstab(Handle:timer, any:userid)
 
     if (IsValidClient(client))
     {
-        TF2_DisguisePlayer(Hale, TFTeam:GetClientTeam(client), TF2_GetPlayerClass(client), client);
+        TF2_DisguisePlayer(Boss_GetBossClient(), TFTeam:GetClientTeam(client), TF2_GetPlayerClass(client), client);
     }
     else
     {
-        DisguiseNue(Hale);
+        DisguiseNue(Boss_GetBossClient());
     }
 }
 
@@ -8734,7 +8796,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
         return Plugin_Continue;
     }
 
-    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && client == Hale && HHH_GetClimbCount() < HHH_MAX_CLIMB_COUNT && VSHRoundState > 0)
+    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && Boss_IsClientHale(client) && HHH_GetClimbCount() < HHH_MAX_CLIMB_COUNT && VSHRoundState > 0)
     {
         new index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
 
@@ -8746,7 +8808,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
         }
     }
 
-    if (client == Hale)
+    if (Boss_IsClientHale(client))
     {
         if (Special == VSHSpecial_Nue && Nue_IsRageActive())
         {
@@ -8759,7 +8821,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
             return Plugin_Continue;
         }
 
-        if (!haleCrits && Special != VSHSpecial_Nue)
+        if (!Boss_CanCrit() && Special != VSHSpecial_Nue)
         {
             result = false;
 
@@ -8860,7 +8922,7 @@ public SickleClimbWalls(client)     //Credit to Mecha the Slag
 
     SDKHooks_TakeDamage(client, client, client, 15.0, DMG_CLUB, GetPlayerWeaponSlot(client, TFWeaponSlot_Melee));
 
-    if (client != Hale)
+    if (!Boss_IsClientHale(client))
     {
         ClientCommand(client, "playgamesound \"%s\"", "player\\taunt_clip_spin.wav");
     }
@@ -8931,8 +8993,9 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
         strcopy(sample, PLATFORM_MAX_PATH, NueGone);
         return Plugin_Changed;
     }*/
+    new Hale = Boss_GetBossClient();
 
-    if (!Enabled || ((entity != Hale) && ((entity <= 0) || !IsValidClient(Hale) || (entity != GetPlayerWeaponSlot(Hale, 0)))))
+    if (!Enabled || ((!Boss_IsClientHale(entity)) && ((entity <= 0) || !IsValidClient(Hale) || (entity != GetPlayerWeaponSlot(Hale, 0)))))
     {
         return Plugin_Continue;
     }
@@ -8966,7 +9029,7 @@ public Action:HookSound(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
         return Plugin_Handled;
     }
 
-    if (entity == Hale && Special == VSHSpecial_HHH && strncmp(sample, "vo", 2, false) == 0 && StrContains(sample, "halloween_boss") == -1)
+    if (Boss_IsClientHale(entity) && Special == VSHSpecial_HHH && strncmp(sample, "vo", 2, false) == 0 && StrContains(sample, "halloween_boss") == -1)
     {
         if (GetRandomInt(0, 100) <= 10)
         {
@@ -9192,7 +9255,7 @@ public Action:OnLemonTouch(entity, other)
     }
 
     // //Only continue if the attacking prop owner is Cave Johnson
-    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner) || !IsPlayerAlive(owner) || owner != Hale)
+    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner) || !IsPlayerAlive(owner) || !Boss_IsClientHale(owner))
     {
         return Plugin_Continue;
     }
@@ -9216,7 +9279,7 @@ public OnBossExplosiveSpawned(entity)
 {
     new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 
-    if (IsValidClient(owner) && owner == Hale)
+    if (IsValidClient(owner) && Boss_IsClientHale(owner))
     {
         if (Special == VSHSpecial_Bunny)
             CreateTimer(0.0, EasterBunny_EggBombTimer, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
@@ -9229,7 +9292,7 @@ public Action:Hook_CommandSay(client, const String:command[], argc)
 {
     if (!Enabled) return Plugin_Continue;
     
-    if (VSHRoundState == 1 && Special == VSHSpecial_Guard && client != Hale)
+    if (VSHRoundState == 1 && Special == VSHSpecial_Guard && !Boss_IsClientHale(client))
     {
         return Plugin_Handled;
     }
@@ -9249,6 +9312,7 @@ public Native_IsEnabled(Handle:plugin, numParams)
 
 public Native_GetHale(Handle:plugin, numParams)
 {
+    new Hale = Boss_GetBossClient();
     return IsValidClient(Hale) ? GetClientUserId(Hale) : -1;
 }
 
@@ -9863,9 +9927,9 @@ stock CalcScores()
             SetEventInt(aevent, "points", j);
             FireEvent(aevent);
 
-            if (i == Hale)
+            if (Boss_IsClientHale(i))
             {
-                if (IsFakeClient(Hale))
+                if (IsFakeClient(Boss_GetBossClient()))
                 {
                     botqueuepoints = 0;
                 }
@@ -10379,7 +10443,7 @@ stock ForceHale(admin, client, bool:hidden, bool:forever = false)
 {
     if (forever)
     {
-        Hale = client;
+        Boss_SetBossClient(client);
     }
     else
     {
@@ -10469,7 +10533,7 @@ stock OnlyScoutsLeft()
 {
     for (new client = 1; client <= MaxClients; client++)
     {
-        if (IsValidClient(client) && IsPlayerAlive(client) && client != Hale && TF2_GetPlayerClass(client) != TFClass_Scout)
+        if (IsValidClient(client) && IsPlayerAlive(client) && !Boss_IsClientHale(client) && TF2_GetPlayerClass(client) != TFClass_Scout)
         {
             return false;
         }
@@ -11009,13 +11073,14 @@ stock RandomNextHale(bool:array[], bool:disconnect=true)
     {
         tBoss = GetRandomInt(1, MaxClients);
     }
-    while (!IsValidClient(tBoss) || array[tBoss] || Hale == tBoss || !(GetClientTeam(tBoss) > _:TFTeam_Spectator || (spec && GetClientTeam(tBoss) != _:TFTeam_Unassigned)));
+    while (!IsValidClient(tBoss) || array[tBoss] || Boss_IsClientHale(tBoss) || !(GetClientTeam(tBoss) > _:TFTeam_Spectator || (spec && GetClientTeam(tBoss) != _:TFTeam_Unassigned)));
 
     return tBoss;
 }
 
 stock FindNextHaleEx()
 {
+    new Hale = Boss_GetBossClient();
     new bool:added[MAXPLAYERS + 1];
 
     if (Hale >= 0)

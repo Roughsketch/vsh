@@ -135,11 +135,11 @@ public Action:QueuePanel(client)
     SetPanelTitle(panel, s);
 
     new bool:added[MAXPLAYERS + 1];
-    new tHale = Hale;
+    new tHale = Boss_GetBossClient();
 
-    if (Hale >= 0)
+    if (tHale >= 0)
     {
-        added[Hale] = true;
+        added[tHale] = true;
     }
 
     if (!Enabled)
@@ -349,7 +349,7 @@ public Action:SetDifficultyCmd(client, args)
         return Plugin_Handled;
     }
 
-    /*if (client == Hale && VSHRoundState == 1)
+    /*if (client == Boss_GetBossClient() && VSHRoundState == 1)
     {
         CPrintToChat(client, "{olive}[VSH]{default} You can't change the difficulty mid-round!");
         return Plugin_Continue;
@@ -364,9 +364,9 @@ public Action:SetDifficultyCmd(client, args)
     new mode = CheckClientDifficulty(client);
 
     DrawPanelItem(panel, "Easy Mode: What!? Easy Modo? That's so lame! Only kids play the Easy Mode! Hohoho!", ITEMDRAW_DISABLED);
-    DrawPanelItem(panel, "Normal Mode: The default game mode for beginners. Full health. Much rage usage.", mode == mode_normal ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-    DrawPanelItem(panel, "Hard Mode: Want a challenge? Start at 60\% of your health with only 0 to 4 rage uses!", mode == mode_hard ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
-    DrawPanelItem(panel, "Lunatic Mode: For Freaks only. 35\% health. No rage. All skill.", mode == mode_lunatic ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+    DrawPanelItem(panel, "Normal Mode: The default game mode for beginners. Full health. Much rage usage.", mode == VSHMODE_NORMAL ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+    DrawPanelItem(panel, "Hard Mode: Want a challenge? Start at 60\% of your health with only 0 to 4 rage uses!", mode == VSHMODE_HARD ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
+    DrawPanelItem(panel, "Lunatic Mode: For Freaks only. 35\% health. No rage. All skill.", mode == VSHMODE_LUNATIC ? ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
     DrawPanelItem(panel, "Exit.");
 
     SendPanelToClient(panel, client, DifficultyDone, 9001);
@@ -380,19 +380,19 @@ public DifficultyDone(Handle:menu, MenuAction:action, client, param)
 {
     if (action == MenuAction_Select)
     {
-        if (param <= mode_lunatic) SetClientDifficulty(client, param);
+        if (param <= VSHMODE_LUNATIC) SetClientDifficulty(client, param);
 
         switch (param)
         {
-            case mode_normal:
+            case VSHMODE_NORMAL:
             {
                 CPrintToChat(client, "{olive}[VSH]{default} Normal mode selected.");
             }
-            case mode_hard:
+            case VSHMODE_HARD:
             {
                 CPrintToChat(client, "{olive}[VSH]{default} Hard mode selected!");
             }
-            case mode_lunatic:
+            case VSHMODE_LUNATIC:
             {
                 CPrintToChat(client, "{olive}[VSH]{default} Lunatic mode... selected?!");
             }
@@ -847,9 +847,9 @@ public Action:HelpPanel2Cmd(client, args)
         return Plugin_Continue;
     }
 
-    if (client == Hale)
+    if (Boss_IsClientHale(client))
     {
-        HintPanel(Hale);
+        HintPanel(Boss_GetBossClient());
     }
     else
     {
@@ -1222,12 +1222,12 @@ stock CheckClientDifficulty(client)
 {
     if (!IsValidClient(client))
     {
-        return mode_normal;
+        return VSHMODE_NORMAL;
     }
 
     if (IsFakeClient(client) || !AreClientCookiesCached(client))
     {
-        return mode_normal;
+        return VSHMODE_NORMAL;
     }
 
     decl String:cky[5];
@@ -1236,7 +1236,7 @@ stock CheckClientDifficulty(client)
 
     if (cky[0] == 0)
     {
-        return mode_normal;   //If the cookie doesn't exist yet, normal mode by default
+        return VSHMODE_NORMAL;   //If the cookie doesn't exist yet, normal mode by default
     }
     else
     {
