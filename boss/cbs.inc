@@ -15,6 +15,13 @@
 #define CBSTheme                "saxton_hale/the_millionaires_holiday.mp3"
 #define CBSJump1                "vo/sniper_specialcompleted02.wav"
 
+static const String:CBSBackstabbed[][] = {
+    "vo/sniper_specialcompleted05.wav",
+    "vo/sniper_specialcompleted11.wav",
+    "vo/sniper_negativevocalization02.wav",
+    "vo/sniper_jeers08.wav"
+};
+
 CBS_AddToDownloads()
 {
     decl i;
@@ -38,4 +45,12 @@ CBS_AddToDownloads()
         Format(s, PLATFORM_MAX_PATH, "%s%02i.wav", CBS4, i);
         PrecacheSound(s, true);
     }
+}
+
+stock CBS_RandomPain(String:str[], max_size)
+{
+    new random = GetRandomInt(0, sizeof(CBSBackstabbed)-1);
+    strcopy(str, max_size, CBSBackstabbed[random]);
+    
+    return random;
 }
