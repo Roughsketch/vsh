@@ -165,6 +165,10 @@ As Medic, do not deploy ubercharge while Painis is using Hunger, it is as deadly
 
 #include "vsh_common"
 #include "boss/boss"
+
+
+//  Temporary fix: Enabled is used in panel and must be defined ahead of time
+new bool:Enabled = false;
 #include "panel"        //  Panel must be included after boss.inc
 
 // Maps to enable trigger_hurt teleport to spawn
@@ -608,8 +612,8 @@ public OnConfigsExecuted()
 
     SetConVarString(FindConVar("hale_version"), sLatestTitle);
     Boss_SetSpeed(GetConVarFloat(cvarHaleSpeed));
-    RageDMG = GetConVarInt(cvarRageDMG);
-    RageDist = GetConVarFloat(cvarRageDist);
+    Boss_SetRageDamage(GetConVarInt(cvarRageDMG));
+    Boss_SetRageDistance(GetConVarFloat(cvarRageDist));
     Announce = GetConVarFloat(cvarAnnounce);
     bSpecials = GetConVarBool(cvarSpecials);
     PointType = GetConVarInt(cvarPointType);
@@ -1069,11 +1073,11 @@ public CvarChange(Handle:convar, const String:oldValue[], const String:newValue[
     }
     else if (convar == cvarRageDMG)
     {
-        RageDMG = GetConVarInt(convar);
+        Boss_SetRageDamage(GetConVarInt(convar));
     }
     else if (convar == cvarRageDist)
     {
-        RageDist = GetConVarFloat(convar);
+        Boss_SetRageDistance(GetConVarFloat(convar));
     }
     else if (convar == cvarAnnounce)
     {
@@ -1409,7 +1413,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     {
         CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_needmoreplayers");
         Enabled = false;
-        VSHRoundState = -1;
+        Boss_SetRoundState(ROUNDSTATE_DISABLED);
         SetControlPoint(true);
         return Plugin_Continue;
     }
@@ -1422,7 +1426,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
         CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_first_round");
 
         Enabled = false;
-        VSHRoundState = -1;
+        Boss_SetRoundState(ROUNDSTATE_DISABLED);
         SetArenaCapEnableTime(60.0);
 
         SearchForItemPacks();
@@ -1486,7 +1490,7 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
         CPrintToChatAll("{olive}[VSH]{default} %t", "vsh_needmoreplayers");
 
         Enabled = false;
-        VSHRoundState = -1;
+        Boss_SetRoundState(ROUNDSTATE_DISABLED);
         SetControlPoint(true);
 
         return Plugin_Continue;
@@ -1579,14 +1583,14 @@ public Action:event_round_start(Handle:event, const String:name[], bool:dontBroa
     CreateTimer(0.3, MakeHale);
 
     healthcheckused = 0;
-    VSHRoundState = 0;
+    Boss_SetRoundState(ROUNDSTATE_WAITING);
 
     return Plugin_Continue;
 }
 
 public Action:Timer_EnableCap(Handle:timer)
 {
-    if (VSHRoundState == -1)
+    if (Boss_IsRoundState(ROUNDSTATE_DISABLED))
     {
         SetControlPoint(true);
 
@@ -1615,7 +1619,7 @@ public Action:Timer_CheckDoors(Handle:hTimer)
         return Plugin_Stop;
     }
 
-    if ((!Enabled && VSHRoundState != -1) || (Enabled && VSHRoundState != 1))
+    if ((!Enabled && !Boss_IsRoundState(ROUNDSTATE_DISABLED)) || (Enabled && !Boss_IsRoundState(ROUNDSTATE_ACTIVE)))
     {
         return Plugin_Continue;
     }
@@ -1686,7 +1690,7 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
 
     if (!Enabled) return Plugin_Continue;
 
-    VSHRoundState = 2;
+    Boss_SetRoundState(ROUNDSTATE_END);
     TeamRoundCounter++;
 
     if (GetEventInt(event, "team") == HaleTeam)
@@ -1790,7 +1794,7 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
             }
             else
             {
-                CPrintToChatAll("{olive}[VSH]{default} %t", translation, Hale, HaleHealth, HaleHealthMax);
+                CPrintToChatAll("{olive}[VSH]{default} %t", translation, Hale, HaleHealth, Boss_GetMaxHP());
             }
 
             SetHudTextParams(-1.0, 0.2, 10.0, 255, 255, 255, 255);
@@ -1805,7 +1809,7 @@ public Action:event_round_end(Handle:event, const String:name[], bool:dontBroadc
                     }
                     else
                     {
-                        ShowHudText(i, -1, "%T", translation, i, Hale, HaleHealth, HaleHealthMax);
+                        ShowHudText(i, -1, "%T", translation, i, Hale, HaleHealth, Boss_GetMaxHP());
                     }
                 }
             }
@@ -1989,7 +1993,7 @@ public Action:StartHaleTimer(Handle:hTimer)
 
     if (!IsValidClient(Hale))
     {
-        VSHRoundState = 2;
+        Boss_SetRoundState(ROUNDSTATE_END);
         return Plugin_Continue;
     }
 
@@ -2009,7 +2013,8 @@ public Action:StartHaleTimer(Handle:hTimer)
 
     // ((760.8 + p) * (p-1))^1.0341 + 2048
 
-    HaleHealthMax = RoundFloat(Pow(((760.8 + playing)*(playing - 1)), 1.0341)) + 2048 + ((playing == 3) ? 87 : (playing == 5) ? -7 : 0);
+    new HaleHealthMax = RoundFloat(Pow(((760.8 + playing)*(playing - 1)), 1.0341)) + 2048 + ((playing == 3) ? 87 : (playing == 5) ? -7 : 0);
+    Boss_SetMaxHP(HaleHealthMax);
 
     if (HaleHealthMax < 0)
     {
@@ -2026,7 +2031,8 @@ public Action:StartHaleTimer(Handle:hTimer)
         HaleHealthMax = 125;
     }
 
-    iHaleMode = CheckClientDifficulty(Hale);
+    new iHaleMode = CheckClientDifficulty(Hale);
+    Boss_SetDifficulty(iHaleMode);
 
     if (iHaleMode == VSHMODE_NORMAL)
     {
@@ -2079,16 +2085,16 @@ public Action:StartHaleTimer(Handle:hTimer)
     {
         if (playing <= 2)
         {
-            RageDMG = HaleHealthMax; // Disable raging
+            Boss_SetRageDamage(HaleHealthMax); // Disable raging
         }
         else
         {
-            RageDMG = RoundFloat(float(HaleHealthMax) * 0.85 * (1.0/(float(playing + 1)/8.0)));
+            Boss_SetRageDamage(RoundFloat(float(HaleHealthMax) * 0.85 * (1.0/(float(playing + 1)/8.0))));
         }
     }
     else
     {
-        RageDMG = GetConVarInt(cvarRageDMG);
+        Boss_SetRageDamage(GetConVarInt(cvarRageDMG));
     }
 
     SetHaleHealthFix(Hale, HaleHealth);
@@ -2109,7 +2115,7 @@ public Action:StartHaleTimer(Handle:hTimer)
         return Plugin_Continue;
     }
 
-    if (VSHRoundState == 0)
+    if (Boss_IsRoundState(ROUNDSTATE_WAITING))
     {
         CreateTimer(2.0, Timer_MusicPlay, _, TIMER_FLAG_NO_MAPCHANGE);
     }
@@ -2119,7 +2125,7 @@ public Action:StartHaleTimer(Handle:hTimer)
 
 public Action:Timer_MusicPlay(Handle:timer)
 {
-    if (VSHRoundState != 1)
+    if (!Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         return Plugin_Stop;
     }
@@ -2239,7 +2245,7 @@ public Action:Timer_MusicTheme(Handle:timer, any:pack)
     ReadPackString(pack, sound, sizeof(sound));
     new Float:time = ReadPackFloat(pack);
 
-    if (Enabled && VSHRoundState == 1)
+    if (Enabled && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         /*      new String:sound[PLATFORM_MAX_PATH] = "";
         switch (Special)
@@ -2319,7 +2325,7 @@ public Action:GottamTimer(Handle:hTimer)
 public Action:StartRound(Handle:hTimer)
 {
     new Hale = Boss_GetBossClient();
-    VSHRoundState = 1;
+    Boss_SetRoundState(ROUNDSTATE_ACTIVE);
 
     if (IsValidClient(Hale))
     {
@@ -2402,15 +2408,10 @@ public Action:Timer_SkipHalePanel(Handle:hTimer)
     while (i < 3 && j < MAXPLAYERS + 1);
 }
 
-public SkipHalePanelH(Handle:menu, MenuAction:action, param1, param2)
-{
-    return;
-}
-
 public Action:EnableSG(Handle:hTimer, any:iid)
 {
     new i = EntRefToEntIndex(iid);
-    if (VSHRoundState == 1 && IsValidEdict(i) && i > MaxClients)
+    if (Boss_IsRoundState(ROUNDSTATE_ACTIVE) && IsValidEdict(i) && i > MaxClients)
     {
         decl String:s[64];
         GetEdictClassname(i, s, 64);
@@ -2504,7 +2505,7 @@ public Action:MessageTimer(Handle:hTimer, any:client)
 
     if ( (client != 9001) && !(GetClientButtons(client) & IN_SCORE) )
     {
-        ShowHudText(client, -1, "%T", translation, client, Hale, HaleHealthMax);
+        ShowHudText(client, -1, "%T", translation, client, Hale, Boss_GetMaxHP());
     }
     else
     {
@@ -2512,7 +2513,7 @@ public Action:MessageTimer(Handle:hTimer, any:client)
         {
             if ( IsValidClient(i) && !(GetClientButtons(i) & IN_SCORE) )
             {
-                ShowHudText(i, -1, "%T", translation, i, Hale, HaleHealthMax);
+                ShowHudText(i, -1, "%T", translation, i, Hale, Boss_GetMaxHP());
             }
         }
     }
@@ -2524,7 +2525,7 @@ public Action:MakeModelTimer(Handle:hTimer)
 {
     new Hale = Boss_GetBossClient();
 
-    if (!IsValidClient(Hale) || !IsPlayerAlive(Hale) || VSHRoundState == 2)
+    if (!IsValidClient(Hale) || !IsPlayerAlive(Hale) || Boss_IsRoundState(ROUNDSTATE_END))
     {
         return Plugin_Stop;
     }
@@ -2689,14 +2690,14 @@ public Action:MakeHale(Handle:hTimer)
         TF2_RespawnPlayer(Hale);
     }
 
-    if (VSHRoundState < 0)
+    if (Boss_IsRoundState(ROUNDSTATE_DISABLED))
     {
         return Plugin_Continue;
     }
 
     if (!IsPlayerAlive(Hale))
     {
-        if (VSHRoundState == 0)
+        if (Boss_IsRoundState(ROUNDSTATE_WAITING))
         {
             TF2_RespawnPlayer(Hale);
         }
@@ -2801,7 +2802,7 @@ public Action:MakeHale(Handle:hTimer)
 
     EquipSaxton(Hale);
 
-    if (VSHRoundState >= 0 && GetClientClasshelpinfoCookie(Hale))
+    if (!Boss_IsRoundState(ROUNDSTATE_DISABLED) && GetClientClasshelpinfoCookie(Hale))
     {
         HintPanel(Hale);
     }
@@ -3505,7 +3506,7 @@ public Action:MakeNoHale(Handle:hTimer, any:clientid)
 {
     new client = GetClientOfUserId(clientid);
 
-    if (!IsValidClient(client) || !IsPlayerAlive(client) || VSHRoundState == 2 || Boss_IsClientHale(client))
+    if (!IsValidClient(client) || !IsPlayerAlive(client) || Boss_IsRoundState(ROUNDSTATE_END) || Boss_IsClientHale(client))
     {
         return Plugin_Continue;
     }
@@ -3536,7 +3537,7 @@ public Action:MakeNoHale(Handle:hTimer, any:clientid)
 
     //  SetEntityRenderColor(client, 255, 255, 255, 255);
 
-    if (!VSHRoundState && GetClientClasshelpinfoCookie(client) && !(VSHFlags[client] & VSHFLAG_CLASSHELPED))
+    if (!Boss_IsRoundState(ROUNDSTATE_WAITING) && GetClientClasshelpinfoCookie(client) && !(VSHFlags[client] & VSHFLAG_CLASSHELPED))
     {
         HelpPanel2(client);
     }
@@ -3732,7 +3733,7 @@ public Action:Timer_Vaccine(Handle:hTimer, any:medigunid) //10hp/s 20%ammo/s 40m
     static vacsecs = 0;
     vacsecs = !vacsecs;
 
-    if (VSHRoundState >= 0)
+    if (!Boss_IsRoundState(ROUNDSTATE_DISABLED))
     {
         if (IsValidClient(client) && IsPlayerAlive(client) && GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon") == medigun)
         {
@@ -3835,7 +3836,7 @@ public Action:Timer_Lazor(Handle:hTimer, any:medigunid)
 {
     new medigun = EntRefToEntIndex(medigunid);
 
-    if (medigun && IsValidEntity(medigun) && VSHRoundState == 1)
+    if (medigun && IsValidEntity(medigun) && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         new client = GetEntPropEnt(medigun, Prop_Send, "m_hOwnerEntity");
         new Float:charge = GetEntPropFloat(medigun, Prop_Send, "m_flChargeLevel");
@@ -3932,10 +3933,12 @@ public Action:Command_GetHPCmd(client, args)
 
 public Action:Command_GetHP(client)
 {
-    if (!Enabled || VSHRoundState != 1 || Special == VSHSpecial_Guard)
+    if (!Enabled || !Boss_IsRoundState(ROUNDSTATE_ACTIVE) || Special == VSHSpecial_Guard)
     {
         return Plugin_Continue;
     }
+
+    new HaleHealthMax = Boss_GetMaxHP();
 
     if (Boss_IsClientHale(client))
     {
@@ -4227,7 +4230,7 @@ public Action:Command_Points(client, args)
 
 public Action:Command_HaleSetHP(client, args)
 {
-    if (!Enabled || VSHRoundState != 1)
+    if (!Enabled || !Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         ReplyToCommand(client, "[VSH] Cannot set boss health yet.");
         return Plugin_Continue;
@@ -4245,9 +4248,9 @@ public Action:Command_HaleSetHP(client, args)
 
     new health = StringToInt(s2);
 
-    if (health > HaleHealthMax)
+    if (health > Boss_GetMaxHP())
     {
-        health = HaleHealthMax;
+        health = Boss_GetMaxHP();
     }
     else if (health <= 0)
     {
@@ -4265,7 +4268,7 @@ public Action:Command_HaleSetMaxHP(client, args)
 {
     new Hale = Boss_GetBossClient();
 
-    if (!Enabled || VSHRoundState != 1)
+    if (!Enabled || !Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         ReplyToCommand(client, "[VSH] Cannot set boss health yet.");
         return Plugin_Continue;
@@ -4288,12 +4291,12 @@ public Action:Command_HaleSetMaxHP(client, args)
         health = 1;
     }
 
-    HaleHealthMax = health;
+    Boss_SetMaxHP(health);
     HaleHealth = health;
 
     //new HP = GetClientHealth(Hale);
-    TF2Attrib_SetByName(Hale, "max health additive bonus", float(HaleHealthMax));
-    SetEntityHealth(Hale, HaleHealthMax);
+    TF2Attrib_SetByName(Hale, "max health additive bonus", float(health));
+    SetEntityHealth(Hale, health);
 
     //if (HaleHealth > HaleHealthMax)
     //{
@@ -4384,7 +4387,7 @@ public OnClientDisconnect(client)
     {
         if (Boss_IsClientHale(client))
         {
-            if (VSHRoundState == 1 || VSHRoundState == 2)
+            if (Boss_IsRoundState(ROUNDSTATE_ACTIVE) || Boss_IsRoundState(ROUNDSTATE_END))
             {
                 decl String:authid[32];
                 GetClientAuthString(client, authid, sizeof(authid));
@@ -4417,12 +4420,12 @@ public OnClientDisconnect(client)
                 }
             }
 
-            if (VSHRoundState == 1)
+            if (Boss_IsRoundState(ROUNDSTATE_ACTIVE))
             {
                 ForceTeamWin(OtherTeam);
             }
 
-            if (VSHRoundState == 0)
+            if (Boss_IsRoundState(ROUNDSTATE_WAITING))
             {
                 new bool:see[MAXPLAYERS + 1];
                 see[Hale] = true;
@@ -4517,13 +4520,13 @@ public Action:event_player_spawn(Handle:event, const String:name[], bool:dontBro
     SetVariantString("");
     AcceptEntityInput(client, "SetCustomModel");
 
-    if (Boss_IsClientHale(client) && VSHRoundState < 2 && VSHRoundState != -1)
+    if (Boss_IsClientHale(client) && !Boss_IsRoundState(ROUNDSTATE_END) && !Boss_IsRoundState(ROUNDSTATE_DISABLED))
     {
         CreateTimer(0.1, MakeHale);
     }
 
     // nergal's FRoG fix
-    if (VSHRoundState != -1)
+    if (!Boss_IsRoundState(ROUNDSTATE_DISABLED))
     {
         CreateTimer(0.2, MakeNoHale, GetClientUserId(client));
         if (!(VSHFlags[client] & VSHFLAG_HASONGIVED))
@@ -4918,7 +4921,10 @@ rocketjump_smoke*/
 
 public Action:ClientTimer(Handle:hTimer)
 {
-    if (VSHRoundState > 1 || VSHRoundState == -1) return Plugin_Stop;
+    if (Boss_IsRoundState(ROUNDSTATE_END) || Boss_IsRoundState(ROUNDSTATE_DISABLED))
+    {
+        return Plugin_Stop;
+    }
 
     new Hale = Boss_GetBossClient();
     decl String:wepclassname[32];
@@ -5361,8 +5367,9 @@ public OnPreThinkPost(client)
 public Action:HaleTimer(Handle:hTimer)
 {
     new Hale = Boss_GetBossClient();
+    new HaleHealthMax = Boss_GetMaxHP();
 
-    if (VSHRoundState == 2)
+    if (Boss_IsRoundState(ROUNDSTATE_END))
     {
         if (IsValidClient(Hale) && IsPlayerAlive(Hale))
         {
@@ -5501,18 +5508,20 @@ public Action:HaleTimer(Handle:hTimer)
     }
 
     SetHaleHealthFix(Hale, HaleHealth);
-    SetHudTextParams(-1.0, (iHaleMode == VSHMODE_LUNATIC && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
+    SetHudTextParams(-1.0, (Boss_GetDifficulty() == VSHMODE_LUNATIC && Special != VSHSpecial_Nue) ? 0.83:0.77, 0.35, 255, 255, 255, 255);
     SetGlobalTransTarget(Hale);
     if (!(GetClientButtons(Hale) & IN_SCORE))
     {
         ShowSyncHudText(Hale, healthHUD, "%t", "vsh_health", HaleHealth, HaleHealthMax);
     }
 
-    if (iHaleMode != VSHMODE_LUNATIC || Special == VSHSpecial_Nue)
+    new RageDMG = Boss_GetRageDamage();
+
+    if (Boss_GetDifficulty() != VSHMODE_LUNATIC || Special == VSHSpecial_Nue)
     {
         if (Special == VSHSpecial_Nue)
         {
-            new Float:rage = 0.0005*RageDMG;
+            new Float:rage = 0.0005 * RageDMG;
             HaleRage += RoundToCeil(rage);
 
             if (HaleRage > RageDMG)
@@ -6285,7 +6294,7 @@ public Action:cdVoiceMenu(iClient, const String:sCommand[], iArgc)
 
     if (sCmd1[0] == '0' && sCmd2[0] == '0' && IsPlayerAlive(iClient) && Boss_IsClientHale(iClient))
     {
-        if (!Nue_IsRageActive() && (HaleRage / RageDMG >= 1))
+        if (!Nue_IsRageActive() && (HaleRage / Boss_GetRageDamage() >= 1))
         {
             DoTaunt(iClient, "", 0);
             return Plugin_Handled;
@@ -6305,7 +6314,7 @@ public Action:DoTaunt(client, const String:command[], argc)
 
     if (!Enabled || !Boss_IsClientHale(client) || TF2_IsPlayerInCondition(Hale, TFCond_Cloaked) ||
         TF2_IsPlayerInCondition(Hale, TFCond_Disguised) || Special == VSHSpecial_Guard ||
-        (iHaleMode == VSHMODE_LUNATIC && Special != VSHSpecial_Nue))
+        (Boss_GetDifficulty() == VSHMODE_LUNATIC && Special != VSHSpecial_Nue))
     {
         return Plugin_Continue;   
     }
@@ -6322,7 +6331,7 @@ public Action:DoTaunt(client, const String:command[], argc)
 
     decl String:s[PLATFORM_MAX_PATH];
 
-    if (HaleRage / RageDMG >= 1)
+    if (HaleRage / Boss_GetRageDamage() >= 1)
     {
         decl Float:pos[3];
 
@@ -6334,6 +6343,7 @@ public Action:DoTaunt(client, const String:command[], argc)
 
         Call_StartForward(OnHaleRage);
 
+        new Float:RageDist = Boss_GetRageDistance();
         new Float:dist;
         new Float:newdist;
 
@@ -6502,14 +6512,14 @@ public Action:Timer_NoTaunting(Handle:timer)
 
 public Action:DoSuicide(client, const String:command[], argc)
 {
-    if (Enabled && (VSHRoundState == 0 || VSHRoundState == 1))
+    if (Enabled && (Boss_IsRoundState(ROUNDSTATE_WAITING) || Boss_IsRoundState(ROUNDSTATE_ACTIVE)))
     {
         if (Boss_IsClientHale(client) && bTenSecStart[0])
         {
             CPrintToChat(client, "Do not suicide as Hale. !hale_resetq or !haletoggle instead.");
             return Plugin_Handled;
             //KickClient(client, "Next time, please remember to !hale_resetq or !haletoggle");
-            //if (VSHRoundState == 0) return Plugin_Handled;
+            //if (Boss_IsRoundState(ROUNDSTATE_WAITING)) return Plugin_Handled;
         }
     }
     return Plugin_Continue;
@@ -6528,6 +6538,8 @@ public Action:DoSuicide2(client, const String:command[], argc)
 public Action:UseRage(Handle:hTimer, any:dist)
 {
     new Hale = Boss_GetBossClient();
+    new Float:RageDist = Boss_GetRageDistance();
+
     decl Float:pos[3];
     decl Float:pos2[3];
     decl i;
@@ -6573,7 +6585,7 @@ public Action:UseRage(Handle:hTimer, any:dist)
                     }
                 }
 
-                if (VSHRoundState == 1) TF2_StunPlayer(i, 5.0, _, flags, (Special == VSHSpecial_HHH ? 0:Hale));
+                if (Boss_IsRoundState(ROUNDSTATE_ACTIVE)) TF2_StunPlayer(i, 5.0, _, flags, (Special == VSHSpecial_HHH ? 0:Hale));
             }
         }
     }
@@ -6757,12 +6769,12 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         Nue_SetRageActive(false);
     }
 
-    if (Boss_IsClientHale(attacker) && Special == VSHSpecial_Bunny && VSHRoundState == 1)
+    if (Boss_IsClientHale(attacker) && Special == VSHSpecial_Bunny && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         SpawnManyAmmoPacks(client, EggModel, 1, 5, 120.0);
     }
 
-    if (Boss_IsClientHale(attacker) && VSHRoundState == 1 && (deathflags & TF_DEATHFLAG_DEADRINGER))
+    if (Boss_IsClientHale(attacker) && Boss_IsRoundState(ROUNDSTATE_ACTIVE) && (deathflags & TF_DEATHFLAG_DEADRINGER))
     {
         numHaleKills++;
 
@@ -6782,7 +6794,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         return Plugin_Continue;
     }
 
-    if (Special == VSHSpecial_Nue && VSHRoundState > 0 && !Nue_IsRageActive() && Nue_GetLastKillTime() != GetGameTime())
+    if (Special == VSHSpecial_Nue && (Boss_IsRoundState(ROUNDSTATE_ACTIVE) || Boss_IsRoundState(ROUNDSTATE_END)) && !Nue_IsRageActive() && Nue_GetLastKillTime() != GetGameTime())
     {
         decl Float:vPos[3];
         GetEntPropVector(client, Prop_Send, "m_vecOrigin", vPos);
@@ -6813,12 +6825,12 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
 
     CreateTimer(0.1, CheckAlivePlayers);
 
-    if (!Boss_IsClientHale(client) && VSHRoundState == 1)
+    if (!Boss_IsClientHale(client) && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         CreateTimer(1.0, Timer_Damage, GetClientUserId(client));
     }
 
-    if (Boss_IsClientHale(client) && VSHRoundState == 1)
+    if (Boss_IsClientHale(client) && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         switch (Special)
         {
@@ -6881,7 +6893,7 @@ public Action:event_player_death(Handle:event, const String:name[], bool:dontBro
         return Plugin_Continue;
     }
 
-    if (Boss_IsClientHale(attacker) && VSHRoundState == 1)
+    if (Boss_IsClientHale(attacker) && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         numHaleKills++;
 
@@ -7189,7 +7201,8 @@ public Action:event_deflect(Handle:event, const String:name[], bool:dontBroadcas
         return Plugin_Continue;
     }
 
-    new Float:rage = 0.04*RageDMG;
+    new RageDMG = Boss_GetRageDamage();
+    new Float:rage = 0.04 * RageDMG;
     HaleRage += RoundToCeil(rage);
 
     if (HaleRage > RageDMG)
@@ -7236,7 +7249,7 @@ public Action:event_jarate(UserMsg:msg_id, Handle:bf, const players[], playersNu
 
     if (jar != -1 && (jindex == 58 || jindex == 1083) && GetEntProp(jar, Prop_Send, "m_iEntityLevel") != -122)    //-122 is the Jar of Ants and should not be used in this
     {
-        new Float:rage = 0.08*RageDMG;
+        new Float:rage = 0.08 * Boss_GetRageDamage();
 
         HaleRage -= RoundToFloor(rage);
 
@@ -7270,7 +7283,7 @@ public Action:CheckAlivePlayers(Handle:hTimer)
 {
     new Hale = Boss_GetBossClient();
 
-    if (VSHRoundState != 1) //(VSHRoundState == 2 || VSHRoundState == -1)
+    if (!Boss_IsRoundState(ROUNDSTATE_ACTIVE)) //(Boss_IsRoundState(ROUNDSTATE_END) || VSHRoundState == -1)
     {
         return Plugin_Continue;
     }
@@ -7294,7 +7307,7 @@ public Action:CheckAlivePlayers(Handle:hTimer)
     {
         ForceTeamWin(HaleTeam);
     }
-    else if (RedAlivePlayers == 2 && IsValidClient(Hale) && VSHRoundState == 1 && Special == VSHSpecial_Cave)
+    else if (RedAlivePlayers == 2 && IsValidClient(Hale) && Boss_IsRoundState(ROUNDSTATE_ACTIVE) && Special == VSHSpecial_Cave)
     {
         for (new i = 1; i <= MaxClients; i++)
         {
@@ -7302,7 +7315,7 @@ public Action:CheckAlivePlayers(Handle:hTimer)
         }
         CreateTimer(1.0, Timer_MusicPlay, _, TIMER_FLAG_NO_MAPCHANGE);
     }
-    else if (RedAlivePlayers == 1 && IsValidClient(Hale) && VSHRoundState == 1)
+    else if (RedAlivePlayers == 1 && IsValidClient(Hale) && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         decl Float:pos[3];
         decl String:s[PLATFORM_MAX_PATH];
@@ -7509,7 +7522,10 @@ public Action:event_hurt(Handle:event, const String:name[], bool:dontBroadcast)
         }
     }
 
-    if (HaleRage > RageDMG) HaleRage = RageDMG;
+    if (HaleRage > Boss_GetRageDamage())
+    {
+        HaleRage = Boss_GetRageDamage();
+    }
 
     return Plugin_Continue;
 }
@@ -7548,7 +7564,7 @@ public Action:OnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &iDmg
     }  
 
     // Noone can hurt each other during round start
-    if (VSHRoundState == 0 && iVictim != iAtker)
+    if (Boss_IsRoundState(ROUNDSTATE_WAITING) && iVictim != iAtker)
     {
         flDamage = 0.0;
 
@@ -8017,7 +8033,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                     {
                         case 14, 201, 664, 792, 801, 851, 881, 890, 899, 908, 957, 966:
                         {
-                            if (VSHRoundState != 2 && !Nue_IsRageActive())
+                            if (!Boss_IsRoundState(ROUNDSTATE_END) && !Nue_IsRageActive())
                             {
                                 new Float:chargelevel = (IsValidEntity(iWeapon) && iWeapon > MaxClients ? GetEntPropFloat(iWeapon, Prop_Send, "m_flChargedDamage"):0.0);
                                 new Float:time = (GlowTimer > 10 ? 1.0:2.0);
@@ -8034,7 +8050,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         }
                     }
 
-                    if (iWepIndex == 402 && VSHRoundState == 1)
+                    if (iWepIndex == 402 && Boss_IsRoundState(ROUNDSTATE_ACTIVE))
                     {
                         bBazaarHit[iAtker] = true;
 
@@ -8068,7 +8084,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                 }
                 case 355: // Fan O'War
                 {
-                    new Float:rage = 0.05*RageDMG;
+                    new Float:rage = 0.05 * Boss_GetRageDamage();
                     HaleRage -= RoundToFloor(rage);
                     if (HaleRage < 0) HaleRage = 0;
                     return Plugin_Continue;
@@ -8322,7 +8338,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                         //if ((GetEntProp(iVictim, Prop_Send, "m_iStunFlags") & TF_STUNFLAGS_GHOSTSCARE | TF_STUNFLAG_NOSOUNDOREFFECT) && Special == VSHSpecial_HHH) return Plugin_Continue;
                         // TFCond_Dazed
 
-                        flDamage = (Pow(float(HaleHealthMax), (0.74074)) + 512.0 - (Marketed/128*float(HaleHealthMax)) )/3.0;    //divide by 3 because this is basedamage and lolcrits (0.714286)) + 1024.0)
+                        flDamage = (Pow(float(Boss_GetMaxHP()), (0.74074)) + 512.0 - (Marketed/128*float(Boss_GetMaxHP())) )/3.0;    //divide by 3 because this is basedamage and lolcrits (0.714286)) + 1024.0)
                         iDmgType |= DMG_CRIT;
 
                         if (Marketed < 5) Marketed++;
@@ -8400,7 +8416,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                 //HaleHealthMax*(0.12 - Stabbed / 90);
                 //new Float:changedamage = (float(HaleHealthMax)*0.073687) + 756.089024 - float(HaleHealthMax)*(Stabbed/100);
                 
-                new Float:changedamage = ( (Pow(float(HaleHealthMax)*0.0014, 2.0) + 899.0) - (float(HaleHealthMax)*(Stabbed/100)) );
+                new Float:changedamage = ( (Pow(float(Boss_GetMaxHP())*0.0014, 2.0) + 899.0) - (float(Boss_GetMaxHP())*(Stabbed/100)) );
                 //new iChangeDamage = RoundFloat(changedamage);
                 //Damage[iAtker] += iChangeDamage;
 
@@ -8593,7 +8609,7 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                 }
             }
 
-            new Float:flMaxDmg = float(HaleHealthMax) * 0.05;
+            new Float:flMaxDmg = float(Boss_GetMaxHP()) * 0.05;
             new Float:flUpperCap = (Special == VSHSpecial_Astro ? 250.0 : 500.0);
             if (flMaxDmg > flUpperCap)
             {
@@ -8629,9 +8645,9 @@ public Action:HaleOnTakeDamage(iVictim, &iAtker, &iInflictor, &Float:flDamage, &
                 flDamage *= 5;
             }
 
-            if (HaleRage > RageDMG)
+            if (HaleRage > Boss_GetRageDamage())
             {
-                HaleRage = RageDMG;
+                HaleRage = Boss_GetRageDamage();
             }
 
             return Plugin_Changed;
@@ -8796,7 +8812,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
         return Plugin_Continue;
     }
 
-    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && Boss_IsClientHale(client) && HHH_GetClimbCount() < HHH_MAX_CLIMB_COUNT && VSHRoundState > 0)
+    if (IsValidEntity(weapon) && Special == VSHSpecial_HHH && Boss_IsClientHale(client) && HHH_GetClimbCount() < HHH_MAX_CLIMB_COUNT && (Boss_IsRoundState(ROUNDSTATE_ACTIVE) || Boss_IsRoundState(ROUNDSTATE_END)))
     {
         new index = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
 
@@ -8816,7 +8832,7 @@ public Action:TF2_CalcIsAttackCritical(client, weapon, String:weaponname[], &boo
             CreateTimer(0.0, Timer_CheckNueRageStab, EntIndexToEntRef(client), TIMER_FLAG_NO_MAPCHANGE);
         }
 
-        if (VSHRoundState != 1 || TF2_IsPlayerCritBuffed(client))
+        if (!Boss_IsRoundState(ROUNDSTATE_ACTIVE) || TF2_IsPlayerCritBuffed(client))
         {
             return Plugin_Continue;
         }
@@ -9292,7 +9308,7 @@ public Action:Hook_CommandSay(client, const String:command[], argc)
 {
     if (!Enabled) return Plugin_Continue;
     
-    if (VSHRoundState == 1 && Special == VSHSpecial_Guard && !Boss_IsClientHale(client))
+    if (Boss_IsRoundState(ROUNDSTATE_ACTIVE) && Special == VSHSpecial_Guard && !Boss_IsClientHale(client))
     {
         return Plugin_Handled;
     }
@@ -9318,7 +9334,7 @@ public Native_GetHale(Handle:plugin, numParams)
 
 public Native_IsCapEnabled(Handle:plugin, numParams)
 {
-    if (VSHRoundState != 1)
+    if (!Boss_IsRoundState(ROUNDSTATE_ACTIVE))
     {
         return false;
     }
@@ -9343,12 +9359,12 @@ public Native_GetHealth(Handle:plugin, numParams)
 
 public Native_GetHealthMax(Handle:plugin, numParams)
 {
-    return HaleHealthMax;
+    return Boss_GetMaxHP();
 }
 
 public Native_GetRoundState(Handle:plugin, numParams)
 {
-    return VSHRoundState;
+    return Boss_GetRoundState();
 }
 
 public Native_GetDamage(Handle:plugin, numParams)

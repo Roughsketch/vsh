@@ -58,12 +58,12 @@
 #define VSHMODE_HARD            3
 #define VSHMODE_LUNATIC         4
 
+#define ROUNDSTATE_DISABLED    -1
+#define ROUNDSTATE_WAITING      0
+#define ROUNDSTATE_ACTIVE       1
+#define ROUNDSTATE_END          2
 
 #define PLAYERCOND_SPYCLOAK (1 << 4)
-
-//Teams
-#define TEAM_RED    2
-#define TEAM_BLU    3
 
 enum
 {
@@ -79,6 +79,7 @@ enum
     VSHSpecial_Guard
 }
 
+
 //  Global hale-related variables
 
 //===========================================
@@ -87,12 +88,11 @@ enum
 //
 //===========================================
 
-new bool:Enabled = false;
 new OtherTeam = 2;
 new HaleTeam = 3;
 
-new iBossClient = -1;
-new HaleHealthMax;
+static iBossClient = -1;
+static iMaxHP;
 new HaleHealth;
 new HaleHealthLast;
 new HaleCharge = 0;
@@ -106,7 +106,7 @@ new Float:WeighDownTimer;
 new bool:bEnableSuperDuperJump;
 new bool:HaleSuperJumpStatus;
 new bool:bSpecials = true;
-new VSHRoundState = -1;
+static iRoundState = ROUNDSTATE_DISABLED;
 new VSHFlags[MAXPLAYERS + 1];
 
 
@@ -116,11 +116,11 @@ new VSHFlags[MAXPLAYERS + 1];
 //
 //===========================================
 
-new RageDMG = 3500;
-new Float:RageDist = 800.0;
+static iRageDamage = 3500;
+static Float:fRageDist = 800.0;
 static Float:fBossSpeed = 340.0;
 static bool:bCritsEnabled = true;
-new iHaleMode = VSHMODE_NORMAL;
+static iHaleMode = VSHMODE_NORMAL;
 new Float:HPLastChecked;
 
 new playing;
@@ -159,6 +159,33 @@ stock bool:Boss_IsClientHale(client)
 }
 
 
+stock Boss_GetMaxHP()
+{
+    return iMaxHP;
+}
+
+stock Boss_SetMaxHP(value)
+{
+    iMaxHP = value;
+}
+
+
+stock Boss_IsRoundState(value)
+{
+    return iRoundState == value;
+}
+
+stock Boss_GetRoundState()
+{
+    return iRoundState;
+}
+
+stock Boss_SetRoundState(value)
+{
+    iRoundState = value;
+}
+
+
 stock Boss_SetCritMode(bool:value)
 {
     bCritsEnabled = value;
@@ -177,6 +204,36 @@ stock Float:Boss_GetSpeed()
 stock Boss_SetSpeed(Float:value)
 {
     fBossSpeed = value;
+}
+
+stock Boss_GetRageDamage()
+{
+    return iRageDamage;
+}
+
+stock Boss_SetRageDamage(value)
+{
+    iRageDamage = value;
+}
+
+stock Float:Boss_GetRageDistance()
+{
+    return fRageDist;
+}
+
+stock Boss_SetRageDistance(Float:value)
+{
+    fRageDist = value;
+}
+
+stock Boss_GetDifficulty()
+{
+    return iHaleMode;
+}
+
+stock Boss_SetDifficulty(value)
+{
+    iHaleMode = value;
 }
 
 #if !defined DISABLE_BOSS_VAGINEER

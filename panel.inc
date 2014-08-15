@@ -1218,6 +1218,11 @@ stock SkipHalePanelNotify(client, bool:newchoice = true)
     return;
 }
 
+public SkipHalePanelH(Handle:menu, MenuAction:action, param1, param2)
+{
+    return;
+}
+
 stock CheckClientDifficulty(client)
 {
     if (!IsValidClient(client))

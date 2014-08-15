@@ -23,6 +23,10 @@
 #define SOUNDEXCEPT_MUSIC       0
 #define SOUNDEXCEPT_VOICE       1
 
+//Teams
+#define TEAM_RED    2
+#define TEAM_BLU    3
+
 
 static const String:sHaleVersionTitle[][] =     //the last line of this is what determines the displayed plugin version
 {
