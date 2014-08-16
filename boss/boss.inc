@@ -92,12 +92,13 @@ new OtherTeam = 2;
 new HaleTeam = 3;
 
 static iBossClient = -1;
-static iMaxHP;
-new HaleHealth;
-new HaleHealthLast;
-new HaleCharge = 0;
-new HaleRage;
-new NextHale;
+static iBossMaxHP;
+static iBossHP;
+static iBossLastHP;
+static Float:fLastCheckedHP;
+static iBossCharge = 0;
+static iBossRage;
+static iBossNext;
 
 new Float:Stabbed;
 new Float:Marketed;
@@ -121,7 +122,6 @@ static Float:fRageDist = 800.0;
 static Float:fBossSpeed = 340.0;
 static bool:bCritsEnabled = true;
 static iHaleMode = VSHMODE_NORMAL;
-new Float:HPLastChecked;
 
 new playing;
 new healthcheckused;
@@ -161,14 +161,84 @@ stock bool:Boss_IsClientHale(client)
 
 stock Boss_GetMaxHP()
 {
-    return iMaxHP;
+    return iBossMaxHP;
 }
 
 stock Boss_SetMaxHP(value)
 {
-    iMaxHP = value;
+    iBossMaxHP = value;
 }
 
+
+stock Boss_GetHP()
+{
+    return iBossHP;
+}
+
+stock Boss_SetHP(value)
+{
+    iBossHP = value;
+}
+
+
+stock Boss_GetLastKnownHP()
+{
+    return iBossLastHP;
+}
+
+stock Boss_SetLastKnownHP(value)
+{
+    iBossLastHP = value;
+    fLastCheckedHP = GetGameTime() + (healthcheckused < 3 ? 20.0:80.0);
+}
+
+
+stock Float:Boss_GetLastCheckedHP()
+{
+    return fLastCheckedHP;
+}
+
+stock Boss_SetLastCheckedHP(Float:value)
+{
+    fLastCheckedHP = value;
+}
+
+
+stock Boss_GetCharge()
+{
+    return iBossCharge;
+}
+
+stock Boss_SetCharge(value)
+{
+    iBossCharge = value;
+}
+
+
+stock Boss_GetRage()
+{
+    return iBossRage;
+}
+
+stock Boss_SetRage(value)
+{
+    iBossRage = value > 0 ? value : 0;
+}
+
+stock Boss_IsClientNext(client)
+{
+    return iBossNext == client;
+}
+
+stock Boss_GetNextBoss()
+{
+    return iBossNext;
+}
+
+stock Boss_SetNextBoss(value)
+{
+    iBossNext = value;
+}
 
 stock Boss_IsRoundState(value)
 {
