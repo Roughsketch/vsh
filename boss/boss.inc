@@ -102,7 +102,6 @@ static iBossNext;
 
 new Float:Stabbed;
 new Float:Marketed;
-new Float:KSpreeTimer;
 new Float:WeighDownTimer;
 new bool:bEnableSuperDuperJump;
 new bool:HaleSuperJumpStatus;

@@ -213,6 +213,7 @@ new bool:PointReady;
 new bool:bMedieval;                 //  UNUSED
 new KSpreeCount = 1;                //  UNUSED
 new Float:circuitStun = 0.0;        //  UNUSED
+new Float:KSpreeTimer;              //  UNUSED ?
 
 new Handle:cvarVersion;
 new Handle:cvarHaleSpeed;
