@@ -25,6 +25,7 @@ static const String:BunnyJump[][] = {
     "vo/demoman_gibberish07.wav",
     "vo/demoman_gibberish08.wav",
     "vo/demoman_laughshort01.wav",
+    "vo/demoman_sf13_influx_big02.wav",     //  New
     "vo/demoman_positivevocalization04.wav"
 };
 
@@ -56,7 +57,7 @@ static const String:BunnySpree[][] = {
     "vo/demoman_gibberish06.wav",
     "vo/demoman_gibberish09.wav",
     "vo/demoman_gibberish11.wav",
-    "vo/demoman_gibberish13.wav",
+    "vo/demoman_gibberish13.wav",   
     "vo/demoman_autodejectedtie01.wav"
 };
 
@@ -64,8 +65,7 @@ static const String:BunnyLast[][] = {
     "vo/taunts/demoman_taunts03.wav",       //  New
     "vo/taunts/demoman_taunts04.wav",
     "vo/taunts/demoman_taunts05.wav",
-    "vo/demoman_specialcompleted07.wav",
-    "vo/demoman_dominationscout05.wav"      //  New
+    "vo/demoman_specialcompleted07.wav"
 };
 
 static const String:BunnyPain[][] = {
@@ -73,7 +73,6 @@ static const String:BunnyPain[][] = {
     "vo/demoman_sf12_badmagic07.wav",
     "vo/demoman_sf12_badmagic09.wav",       //  New
     "vo/demoman_sf12_badmagic10.wav",
-    "vo/demoman_sf13_influx_big02.wav",     //  New
     "vo/demoman_sf13_bosses03.wav",         //  New
     "vo/demoman_sf13_bosses04.wav",         //  New
     "vo/demoman_sf13_bosses05.wav",         //  New
