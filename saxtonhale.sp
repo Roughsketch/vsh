@@ -164,6 +164,7 @@ As Medic, do not deploy ubercharge while Painis is using Hunger, it is as deadly
 //#define REQUIRE_EXTENSIONS
 
 #include "vsh_common"
+#include "player"
 #include "boss/boss"
 
 
@@ -196,14 +197,6 @@ new Float:iClassSpeeds[10] = {340.0, 400.0, 300.0, 240.0, 280.0, 320.0, 230.0, 3
 new bool:steamtools = false;
 #endif
 
-new Damage[MAXPLAYERS + 1];
-new AirDamage[MAXPLAYERS + 1]; // Air Strike
-new uberTarget[MAXPLAYERS + 1];
-new PrimaryMaxAmmo[MAXPLAYERS + 1];
-new SecondaryMaxAmmo[MAXPLAYERS + 1];
-//new Handle:UberTimers[MAXPLAYERS + 1];
-new Handle:VaccineTimers[MAXPLAYERS + 1] = INVALID_HANDLE;
-new Handle:SandvichTimers[MAXPLAYERS + 1] = INVALID_HANDLE;
 //new Handle:hScheemic_Medibeam = INVALID_HANDLE;
 
 //new g_LastSandvich[MAXPLAYERS+1] = {-1,...};

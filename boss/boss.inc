@@ -1,3 +1,9 @@
+#if defined VSH_BOSS_INC
+    #endinput
+#endif
+
+#define VSH_BOSS_INC
+
 #include "vsh_common"
 
 #define HALE_JUMPCHARGETIME 1
